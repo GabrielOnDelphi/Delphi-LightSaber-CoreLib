@@ -5,7 +5,7 @@ UNIT ccWinVersion;
   2021.10.15
   See Copyright.txt
 
-  This library provides 3 ways to get the version:
+  This library provides 3 ways to get Windows version:
      Using RtlGetVersion in NtDLL.dll    Win10 ok
      Using GetVersionEx                  Win10 wrong results
      Using NetServerGetInfo              Win10 ok

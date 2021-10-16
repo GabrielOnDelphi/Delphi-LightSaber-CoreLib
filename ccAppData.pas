@@ -5,9 +5,17 @@ UNIT ccAppData;
   2021.10.15
   See Copyright.txt
  ==================================================================================================
+  Application-wide functions:
+     Get application's system/appdata folder
+     Get application's INI file
+     Get application's command line parameters
+     Detect if the application is running for the firs this in a computer
+     Application self-restart
+     Application self-delete
+
   The AppName global variable is the central part of the App/Ini/MesageBox functionality.
 
-  Dependences:
+  The units files depend on this unit:
     cvINIFileEx.pas - Allows you to save the state of your application (all checkboxes, radioboxes, etc) to a INI file with one single function call (SaveForm/LoadForm). AppName is used for the INI file name.
     ccCore.pas (MesajInfo, MesajError, etc) - Allows you to show customized message/dialog boxes. AppName is shown in dialog's caption.
 

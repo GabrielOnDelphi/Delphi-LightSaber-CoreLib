@@ -5,12 +5,12 @@ UNIT ccStreamBuff;
   2021.10.15
   See Copyright.txt
 
-   Very fast reading/writing to a file.
-   ONLY works for linear reading NOT for random reading!
-   Update 2021: When reading character by character, the new System.Classes.TBufferedFileStream seems to be 70% faster.
+  Buffered file access (very fast reading/writing to a file).
+  ONLY works for linear reading NOT for random reading!
+  Update 2021: When reading character by character, the new System.Classes.TBufferedFileStream seems to be 70% faster.
 
 
-   Source: http://stackoverflow.com/questions/5639531/buffered-files-for-faster-disk-access
+  Source: http://stackoverflow.com/questions/5639531/buffered-files-for-faster-disk-access
 -----------------------------------------------------------------------------------------------------------------------
 
 

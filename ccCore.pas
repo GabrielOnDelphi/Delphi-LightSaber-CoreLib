@@ -5,6 +5,15 @@ UNIT ccCore;
   2021.10.15
   See Copyright.txt
 
+  Over 200 functions for:
+     String manipulation (string conversions, sub-string detection, word manipulation, cut, copy, split, wrap, etc)
+     Programmer's helper
+     Form manipulation
+     Advanced/easy message boxes
+     DateTime utilities
+
+
+
   By adding this unit to your app, the EXE fileszie will increase with adds 320KB (2MB for a console app)
   JCL adds 205KB. See this for more info: c:\Google Drive\Delphi\Delphi documentation.rtf
 
@@ -220,7 +229,6 @@ TYPE
    public
       property Canvas;
    end;
-
 
 
 {=============================================================================================================

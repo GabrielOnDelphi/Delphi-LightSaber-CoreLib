@@ -5,9 +5,24 @@ UNIT ccIO;
   2021.10.15
   See Copyright.txt
 
+  Super useful functions for file/folder/disk manipulation:
+     * Copy files
+     * File/Folder Exists
+     * Get special Windows folders (My Documents, etc)
+     * Prompt user to select a file/folder
+     * List specified files (*.jpg for ex) in a folder and all its sub-folders
+     * Increment the numbers in a filename (good for incremental backups)
+     * Append strings to file name
+     * Read text from files to a string variable
+     * Compare files
+     * Merge files
+     * Sort lines in a file
+     * Drive manipulation (IsDiskInDrive, etc)
+==================================================================================================
+
   This unit adds few KB to the size of the compiled EXE file.
 
-  EXISTA:
+  EXISTS:
     procedure ProcessPath (FullFileName, Drive, DirPart, FilePart)    // Parses a file name into its constituent parts.
     procedure CutFirstDirectory(VAR S: TFileName)
     procedure FileGetSymLinkTarget                                    // Reads the contents of a symbolic link. The result is returned in the symbolic link record given by SymLinkRec.
@@ -279,9 +294,8 @@ CONST
  TYPE
    TWriteOperation= (woAppend, woOverwrite);
 
- function  StringFromFileTSL    (CONST FileName: string): TStringList;                                    { Returns a TSL instead of a string. The caller has to free the result }
+ function  StringFromFileTSL    (CONST FileName: string): TStringList;                             { Returns a TSL instead of a string. The caller has to free the result }
  function  StringFromFileExists (CONST FileName: string): String;                                  { Read file IF it exists. Otherwise, return '' }
- function  StringFromFileStart  (CONST FileName: string; Count: Cardinal): AnsiString;             { Read the first Count ascii characters from a file }
  function  StringFromFileA      (CONST FileName: string): AnsiString;                              { Read a WHOLE file and return its content as String. Also see this: http://www.fredshack.com/docs/delphi.html }
  function  StringFromFile       (CONST FileName: string): string;
  procedure StringToFile         (CONST FileName: string; CONST aString: String;     CONST WriteOp: TWriteOperation= woOverwrite; WritePreamble: Boolean= FALSE);
@@ -432,7 +446,7 @@ USES
   ccWinVersion,
   ccAppData,
   ccStreamBuff,
-  ccStreamFile,
+  //ccStreamFile,
   ccCore;
 
 
@@ -2248,7 +2262,10 @@ end;                                                                            
  READ/WRITE UNICODE
 --------------------------------------------------------------------------------------------------}
 
-procedure StringToFile(CONST FileName: string; CONST aString: String; CONST WriteOp: TWriteOperation= woOverwrite; WritePreamble: Boolean= FALSE); { Write Unicode strings to a UTF8 file. It can also write a preamble. Based on: http://stackoverflow.com/questions/35710087/how-to-save-classic-delphi-string-to-disk-and-read-them-back/36106740#36106740  }
+{ Write Unicode strings to a UTF8 file.
+It can also write a preamble.
+  Based on: http://stackoverflow.com/questions/35710087/how-to-save-classic-delphi-string-to-disk-and-read-them-back/36106740#36106740  }
+procedure StringToFile(CONST FileName: string; CONST aString: String; CONST WriteOp: TWriteOperation= woOverwrite; WritePreamble: Boolean= FALSE);
 VAR
    Stream: TFileStream;
    Preamble: TBytes;
@@ -2293,7 +2310,7 @@ end;
 
 
 {--------------------------------------------------------------------------------------------------
- READ/WRITE ANSI
+  READ/WRITE ANSI
 --------------------------------------------------------------------------------------------------}
 
 function StringFromFileA(CONST FileName: string): AnsiString;                                    { Read a WHOLE file and return its content as AnsiString. The function will not try to autodetermine file's type. It will simply read the file as ANSI. Also see this: http://www.fredshack.com/docs/delphi.html }
@@ -2349,31 +2366,14 @@ end;
 
 
 
-
-
-
-
-
-
 {--------------------------------------------------------------------------------------------------
  SPECIAL
+
+ Also see: ccStreamFile.pas -> StringFromFileStart
 --------------------------------------------------------------------------------------------------}
 
-function StringFromFileStart (CONST FileName: string; Count: Cardinal): AnsiString;       { Read the first Count ascii characters from a file }
-VAR StreamFile: TCubicFileStream;
-begin
- SetLength(Result, Count);
-
- StreamFile:= TCubicFileStream.Create(FileName, fmOpenRead);                                          { <--------- EFCreateError:   Cannot create file "blablabla". Access is denied. }
- TRY
-   Result:= StreamFile.ReadStringAR(Count);
- FINALLY
-   FreeAndNil(StreamFile);
- END;
-end;
-
-
-function StringFromFileExists(CONST FileName: string): String;      { Read file IF it exists. Otherwise, return '' }    // Works with UNC paths
+{ Read file IF it exists. Otherwise, return '' }
+function StringFromFileExists(CONST FileName: string): String;          // Works with UNC paths
 begin
  if FileExists(FileName)
  then Result:= StringFromFile(FileName)

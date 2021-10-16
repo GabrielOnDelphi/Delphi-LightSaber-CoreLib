@@ -5,6 +5,14 @@ UNIT ccBinary;
   2021.10.15
   See Copyright.txt
 
+  Contains:
+    String to hex, hex to string conversions (and many others)
+    Binary numbers swapping
+    Data serialization
+    Bit manipulation (set bit, etc)
+    Reverse bits
+    Endianess
+
   See also: AppControls v3.8.1\Sources\acUtils.pas
   See also lazarus TBits: https://wiki.freepascal.org/Bit_manipulation
 =======================================================================================================================}
