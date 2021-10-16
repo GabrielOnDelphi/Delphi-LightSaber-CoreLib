@@ -68,3 +68,10 @@ This library will be expanded soon.
        IsWindows8  
        IsWindows8Up  
        IsWindows10  
+
+
+_____
+
+This library is freeware.
+Click the 'Star' button (top-right corner) if you like this library.
+Click the 'Watch' button if you want to get notified about updates.
