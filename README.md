@@ -5,8 +5,11 @@ Lightweight alternative to Jedi library.
 Simple, crystal clear, non-obfuscated, fully commented code.   
 No external dependencies.   
   
-This library will be expanded soon.  
-  
+This library will be expanded soon (graphichs, simple encryption, internet, HTML manipulation, image manipulation, registry, math, lots of visual components).
+
+_________________
+
+
 **ccCore.pas**  
   Over 200 functions for:  
      String manipulation (string conversions, sub-string detection, word manipulation, cut, copy, split, wrap, etc)  
@@ -72,6 +75,6 @@ This library will be expanded soon.
 
 _____
 
-This library is freeware.
-Click the 'Star' button (top-right corner) if you like this library.
-Click the 'Watch' button if you want to get notified about updates.
+This library is freeware.  
+Click the 'Star' button (top-right corner) if you like this library.  
+Click the 'Watch' button if you want to get notified about updates.  
