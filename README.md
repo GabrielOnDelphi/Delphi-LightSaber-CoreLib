@@ -7,7 +7,7 @@ No external dependencies.
   
 This library will be expanded soon.  
   
-ccCore.pas  
+**ccCore.pas**  
   Over 200 functions for:  
      String manipulation (string conversions, sub-string detection, word manipulation, cut, copy, split, wrap, etc)  
      Programmer's helper  
@@ -16,7 +16,7 @@ ccCore.pas
      DateTime utilities  
     
     
-ccIO.pas  
+**ccIO.pas**  
   Super useful functions for file/folder/disk manipulation:  
      * Copy files   
      * File/Folder Exists    
@@ -32,7 +32,7 @@ ccIO.pas
      * Drive manipulation (IsDiskInDrive, etc)       
      
      
-ccAppData.pas  
+**ccAppData.pas**  
   Application-wide functions:  
      Get application's system/appdata folder  
      Get application's INI file  
@@ -42,13 +42,13 @@ ccAppData.pas
      Application self-delete  
    
      
-ccStreamBuff.pas  
+**ccStreamBuff.pas**  
      Buffered file access (very fast reading/writing to a file).  
      
-ccStreamFile.pas  
+**ccStreamFile.pas**  
      Class that allows you to directly read/write bytes, cardinals, words, integers, strings to a (binary) files.  
      
-ccBinary.pas  
+**ccBinary.pas**  
      String to hex, hex to string conversions (and many others)  
      Binary numbers swapping  
      Data serialization  
@@ -56,7 +56,7 @@ ccBinary.pas
      Reverse bits  
      Endianess  
 
-ccWinVersion.pas
+**ccWinVersion.pas**
      This library provides 3 ways to get Windows version.  
      Example of functions:   
        IsWindowsXP  
