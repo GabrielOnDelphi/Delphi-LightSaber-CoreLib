@@ -128,9 +128,6 @@ CONST
    MINLONGWORD   = low(longword);
    MAXSTRING     = MaxInt;
 
-   ctCompanyNameCubic   = 'CubicDesign';
-   ctCompanyNameHeracle = 'CubicDesign';
-
    { for FindFirst } {del
    faNORMAL             = $0080;
    faTEMPORARY          = $0100;
