@@ -1,8 +1,8 @@
 UNIT ccAppData;
 
 {==================================================================================================
-  Gabriel Moraru
-  2021.10.15
+  CubicDesign
+  2021.10.23
   See Copyright.txt
  ==================================================================================================
   Application-wide functions:
@@ -12,10 +12,9 @@ UNIT ccAppData;
      Detect if the application is running for the firs this in a computer
      Application self-restart
      Application self-delete
+  The AppName global variable is the central part for the App/Ini/MesageBox functionality.
 
-  The AppName global variable is the central part of the App/Ini/MesageBox functionality.
-
-  The units files depend on this unit:
+  These units depend on this unit:
     cvINIFileEx.pas - Allows you to save the state of your application (all checkboxes, radioboxes, etc) to a INI file with one single function call (SaveForm/LoadForm). AppName is used for the INI file name.
     ccCore.pas (MesajInfo, MesajError, etc) - Allows you to show customized message/dialog boxes. AppName is shown in dialog's caption.
 
@@ -72,11 +71,11 @@ VAR
  {-------------------------------------------------------------------------------------------------
    APPLICATION Version
 --------------------------------------------------------------------------------------------------}
- function  GetVersionInfoV      : string;                                     { MAIN. Returns version without Build number. Example: v1.0.0 }
+ function  GetVersionInfoV      : string;                            { MAIN. Returns version without Build number. Example: v1.0.0 }
  function  GetVersionInfo(ShowBuildNo: Boolean= False): string;
  function  GetVersionInfoMajor: Word;
  function  GetVersionInfoMinor: Word;
- function  GetVersionInfo_Eu: string;
+ function  GetVersionInfo_: string;
 
  function  getVersionFixedInfo(CONST FileName: string; VAR FixedInfo: TVSFixedFileInfo): Boolean;
 
@@ -85,7 +84,7 @@ VAR
    APPLICATION Command line
 --------------------------------------------------------------------------------------------------}
  function  CommandLinePath: string;
- procedure ExtractPathFromCmdLine(MixedInput: string; OUT Path, Parameters: string);               { recieves a full path and returns the path and the parameters separatelly. Old name: SeparatePathFromParams }
+ procedure ExtractPathFromCmdLine(MixedInput: string; OUT Path, Parameters: string);
  function  FindCmdLineSwitch(const Switch: string; IgnoreCase: Boolean): Boolean; deprecated 'Use System.SysUtils.FindCmdLineSwitch';
 
 
@@ -112,8 +111,7 @@ USES
 
 
 
-{
-  Returns the folder where the EXE file resides
+{ Returns the folder where the EXE file resides
   The path ended with backslash. Works with UNC paths.
   Example: c:\Program Files\MyCoolApp\ }
 function GetAppDir: string;
@@ -122,8 +120,7 @@ begin
 end;
 
 
-{
-  Returns the folder where the EXE file resides plus one extra folder called 'System'
+{ Returns the folder where the EXE file resides plus one extra folder called 'System'
   The path ended with backslash. Works with UNC paths.
   Example: c:\Program Files\MyCoolApp\System\ }
 function GetAppSysDir: string;
@@ -193,30 +190,36 @@ begin
 end;
 
 
+{ Returns true if the application is running for the first time in this computer }
 function RunningFirstTime: Boolean;
 begin
  Result:= NOT FileExists(AppIniFile);
 end;
 
 
+{ Returns true if the application is "home" (in the computer where it was created). This is based on the presence of a DPR file that has the same name as the exe file. }
 function RunningHome: Boolean;
 begin
  Result:= FileExists(ChangeFileExt(Application.ExeName, '.dpr'));
 end;
 
 
+{ Returns true if a file called 'betatester' exists in application's folder or in application's system folder. }
 function BetaTesterMode: Boolean;
 begin
  Result:= FileExists(GetAppSysDir+ 'betatester') OR FileExists(GetAppDir+ 'betatester');
 end;
 
 
-function IsHardCodedExp(Year, Month, Day: word): Boolean;                                          { HARD CODED DATE }
+{ Check if today is past the specified (expiration) date.
+  If a file called 'dvolume.bin' exists, then the check is overridden.
+  Good for checking exiration dates. }
+function IsHardCodedExp(Year, Month, Day: word): Boolean;
 VAR
    s: string;
    HardCodedDate: TDateTime;
 begin
- if FileExists(GetAppDir+ 'dvolume.bin')                                                           { If file exists, ignore the date passed as parameter and use the date written in file }
+ if FileExists(GetAppDir+ 'dvolume.bin')        { If file exists, ignore the date passed as parameter and use the date written in file }
  then
   begin
    s:= StringFromFile(GetAppDir+ 'dvolume.bin');
@@ -298,7 +301,8 @@ begin
 end;
 
 
-procedure AppSelfDelete;                                                                           { Very dirty! Think twice before using it! It creates a BAT that deletes the EXE. }
+{ Very dirty! It creates a BAT that deletes the EXE. An nativirus might block this behavior. }
+procedure AppSelfDelete;
 CONST
    cBatCode = ':delete_exe' + CRLF +'del "%s"' + CRLF +'if exist "%s" goto delete_exe' + CRLF +'del "%s"';
 VAR
@@ -357,7 +361,9 @@ end;
    VERSION INFO
 --------------------------------------------------------------------------------------------------}
 
-function getVersionFixedInfo(CONST FileName: string; VAR FixedInfo: TVSFixedFileInfo): Boolean;  { FROM JCL } { TVSFixedFileInfo returns all kind of more or less info about an executable file }
+{ TVSFixedFileInfo returns all kind of more or less info about an executable file.
+   Source: JCL }
+function getVersionFixedInfo(CONST FileName: string; VAR FixedInfo: TVSFixedFileInfo): Boolean;
 var
   InfoSize, FixInfoLen: DWORD;
   DummyHandle: DWORD;
@@ -403,7 +409,9 @@ end;
 
 
 { Returns version with/without build number.
-  Example: 1.0.0.876
+  Example:
+     1.0.0.999
+     1.0.0
 
   See also: CheckWin32Version }
 function GetVersionInfo(ShowBuildNo: Boolean= False): string;
@@ -421,13 +429,15 @@ begin
 end;
 
 
-function GetVersionInfoV: string;                                                                  { Returns version without build number. Example: v1.0.0 }
+{ Returns version without build number. Example: v1.0.0 }
+function GetVersionInfoV: string;
 begin
  Result:= ' v'+ GetVersionInfo(False);
 end;
 
 
-function GetVersionInfo_Eu: string;
+{ Yet another one. Seems to have issues on Vista }
+function GetVersionInfo_: string;
 const
   InfoStr: array[1..2] of string = ('FileVersion', 'InternalName');
 var
@@ -445,7 +455,7 @@ begin
     GetFileVersionInfo(PChar(S), 0, InfoSize, Buf);
 
      if VerQueryValue(Buf, PChar('StringFileInfo\040904E4\' + InfoStr[1]), Pointer(FixInfoBuf), Len)
-     then Result:= FixInfoBuf;                                                                     {         <---- AV here, on Vista 64bit }
+     then Result:= FixInfoBuf;    {  <---- AV here, on Vista 64bit }
 
     FreeMem(Buf, InfoSize);
   end
@@ -466,8 +476,8 @@ end;
 
 { Importan note:
    $O+ has a local scope, therefore, the result of the function reflects only the optimization state at that specific source code location.
-   So, if you are using the $O switch to optimize pieces of code then the function MUST be used as a subfunction,
-    otherwise, if you use the global switch only (in Project Options) it can be used as a normal (declared) function. }
+   So, if you are using the $O switch to optimize pieces of code then the function MUST be used as a subfunction;
+   Otherwise, if you use the global switch ONLY (in Project Options) it can be used as a normal (declared) function. }
 
 function CompilerOptimization_: Boolean;
 begin
@@ -512,7 +522,8 @@ end;
 {-----------------------------------------------------------------------------------------------------------------------
    APP COMMAND LINE
 -----------------------------------------------------------------------------------------------------------------------}
-function CommandLinePath: string;    { Tested ok. Returns the path sent as command line param }
+{ Returns the path sent as command line param. Tested ok. }
+function CommandLinePath: string;
 begin
  if ParamCount > 0
  then Result:= Trim(ParamStr(1))     { Do we have parameter into the command line? }
@@ -520,32 +531,32 @@ begin
 end;
 
 
-
-procedure ExtractPathFromCmdLine(MixedInput: string; out Path, Parameters: string);                { recieves a full path and returns the path and the parameters separatelly }
+{ Recieves a full path and returns the path and the parameters separately }
+procedure ExtractPathFromCmdLine(MixedInput: string; out Path, Parameters: string);
 VAR i: Integer;
 begin
- Assert(Length(MixedInput) > 0, 'ExtractPathFromCmdLine -> Length=0');
+ Assert(Length(MixedInput) > 0, 'Command line length is 0!');
 
  MixedInput:= Trim(MixedInput);
 
  { I don't have paramters }
- if MixedInput[1]<> '"' then
-  begin
-   Path:= MixedInput;
-   Parameters:= '';
-  end
-
- else
- {Copiaza tot ce e intre ""}
- for i:= 2 to Length(MixedInput) DO                                                                { ATENTIE! Asta presupune ca pe prima pozitie am caracterul " }
-  if MixedInput[i]= '"' then                                                                       { find next " character }
+ if MixedInput[1]<> '"'
+ then
    begin
-    Path:= CopyTo(MixedInput, 1+1, i-1);                                                           { +1 si -1 pt ca nu vreau sa copiez si ghilimele }
-    Parameters:= system.COPY(MixedInput, i+1, Length(MixedInput));
-    Break;
-   end;
-end;
-                                                                                             { A SE VEDEA SI: http://delphi.about.com/od/delphitips2007/qt/parse_cmd_line.htm }
+    Path:= MixedInput;
+    Parameters:= '';
+   end
+ else
+   { Copy all between ""}
+   for i:= 2 to Length(MixedInput) DO                                                                { This supposes that " is on the first position }
+    if MixedInput[i]= '"' then                                                                       { Find next " character }
+     begin
+      // ToDo: use ccCore.ExtractTextBetween
+      Path:= CopyTo(MixedInput, 1+1, i-1);                                                           { +1 si -1 because we want to exclude "" }
+      Parameters:= system.COPY(MixedInput, i+1, Length(MixedInput));
+      Break;
+     end;
+end;   { See also: http://delphi.about.com/od/delphitips2007/qt/parse_cmd_line.htm }
 
 
 function FindCmdLineSwitch(const Switch: string; IgnoreCase: Boolean): Boolean;

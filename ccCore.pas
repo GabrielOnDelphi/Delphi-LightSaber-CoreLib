@@ -1,8 +1,8 @@
 UNIT ccCore;
 
 {=============================================================================================================
-  Gabriel Moraru
-  2021.10.15
+  CubicDesign
+  2021.10.23
   See Copyright.txt
 
   Over 200 functions for:
@@ -129,7 +129,7 @@ CONST
    MAXSTRING     = MaxInt;
 
    ctCompanyNameCubic   = 'CubicDesign';
-   ctCompanyNameHeracle = 'Heracle BioSoft SRL';
+   ctCompanyNameHeracle = 'CubicDesign';
 
    { for FindFirst } {del
    faNORMAL             = $0080;
@@ -952,14 +952,14 @@ VAR aYear, aMonth, aDay : Word;
 begin
   DecodeDate(Now, aYear, aMonth, aDay);
 
-  Result:= i2s(aYear)+ '.';
+  Result:= IntToStr(aYear)+ '.';
   if aMonth < 10
-  then Result:= Result+ '0'+i2s(aMonth)+ '.'
-  else Result:= Result+ i2s(aMonth)+ '.';
+  then Result:= Result+ '0'+IntToStr(aMonth)+ '.'
+  else Result:= Result+ IntToStr(aMonth)+ '.';
 
   if aDay < 10
-  then Result:= Result+ '0'+i2s(aDay)
-  else Result:= Result+ i2s(aDay);
+  then Result:= Result+ '0'+IntToStr(aDay)
+  else Result:= Result+ IntToStr(aDay);
 end;
 
 

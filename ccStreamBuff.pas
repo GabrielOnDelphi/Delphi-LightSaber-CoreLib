@@ -1,20 +1,36 @@
 UNIT ccStreamBuff;
 
 {-----------------------------------------------------------------------------------------------------------------------
-  Gabriel Moraru
-  2021.10.15
+  CubicDesign
+  2021.10.23
   See Copyright.txt
+  Based on: stackoverflow.com/questions/5639531
 
-  Buffered file access (very fast reading/writing to a file).
-  ONLY works for linear reading NOT for random reading!
-  Update 2021: When reading character by character, the new System.Classes.TBufferedFileStream seems to be 70% faster.
+   Description
+     Direct read/write bytes, cardinals, words, integers, strings to a buffred (binary) file.
+     For even faster access, use ccStreamFile.pas (disadvantage: ccStreamFile reads the whole file content to RAM).
+
+   Read type
+     ONLY works for linear reading!
+     For random-access consider ccStreamFile.pas
+
+   Details:
+     Windows file caching is very effective, especially if you are using Vista or later. TFileStream is a loose wrapper around
+     the Windows ReadFile() and WriteFile() API functions and for many use cases the only thing faster is a memory mapped file.
+
+     However, there is one common scenario where TFileStream becomes a performance bottleneck.
+     That is if you read or write small amounts of data with each call to the stream read or write
+     functions. For example if you read an array of integers one item at a time then you incur a
+     significant overhead by reading 4 bytes at a time in the calls to ReadFile().
+
+     Again, memory mapped files are an excellent way to solve this bottleneck, but the other commonly used approach is
+     to read a much larger buffer, many kilobytes say, and then resolve future reads of the stream from this in memory
+     cache rather than further calls to ReadFile(). This approach only really works for sequential access.
 
 
-  Source: http://stackoverflow.com/questions/5639531/buffered-files-for-faster-disk-access
 -----------------------------------------------------------------------------------------------------------------------
 
-
-   Speed tests:
+   Speed tests (2017):
      Reading a 317MB SFF file.
      Delphi streams: 9.84sec
      This stream:    2.05sec
@@ -59,6 +75,9 @@ UNIT ccStreamBuff;
         Time: 625 ms  Cache size: 66KB.
         Time: 639 ms  Cache size: 8KB.       <--- definitivelly not good with < 8K
         Time: 660 ms  Cache size: 4KB.
+
+
+
      ______________________________________
      Reading: Random (ReadInteger) (100000 reads)
       SSD Laptop
@@ -70,29 +89,16 @@ UNIT ccStreamBuff;
        Time: 213 ms. Cache size: 32KB.  Count: 100000.  RAM: 13.27 MB
        Time: 360 ms. Cache size: 64KB.  Count: 100000.  RAM: 13.27 MB
 
-     Conclusion: This library is NOT the perfect solution for random reading.
+       Conclusion: This library is NOT the perfect solution for random reading.
      ______________________________________
 
 
-    Windows file caching is very effective, especially if you are using Vista or later. TFileStream is a loose wrapper around
-    the Windows ReadFile() and WriteFile() API functions and for many use cases the only thing faster is a memory mapped file.
+    Update 2021:
+      When reading character by character, the new System.Classes.TBufferedFileStream seems to be 70% faster (Test done under Sydney).
 
-    However, there is one common scenario where TFileStream becomes a performance bottleneck.
-    That is if you read or write small amounts of data with each call to the stream read or write
-    functions. For example if you read an array of integers one item at a time then you incur a
-    significant overhead by reading 4 bytes at a time in the calls to ReadFile().
-
-    Again, memory mapped files are an excellent way to solve this bottleneck, but the other commonly used approach is
-    to read a much larger buffer, many kilobytes say, and then resolve future reads of the stream from this in memory
-    cache rather than further calls to ReadFile(). This approach only really works for sequential access.
-
-
-    Also see TBinaryReader / TBinaryWriter
-      http://docwiki.embarcadero.com/CodeExamples/Tokyo/en/TBinaryReader_and_TBinaryWriter_(Delphi)
 -----------------------------------------------------------------------------------------------------------------------}
 
 INTERFACE
-{$WARN GARBAGE OFF}   {Silence the: 'W1011 Text after final END' warning }
 
 USES
    System.Types, System.SysUtils, System.AnsiStrings, System.Classes, system.Math, Winapi.Windows;
@@ -109,9 +115,9 @@ TYPE
     FOwnsHandle : Boolean;
     FCache      : PByte;
     FCacheSize  : Integer;
-    FPosition   : Int64;                                                        //the current position in the file (relative to the beginning of the file)
-    FCacheStart : Int64;                                                        //the postion in the file of the start of the cache (relative to the beginning of the file)
-    FCacheEnd   : Int64;                                                        //the postion in the file of the end of the cache (relative to the beginning of the file)
+    FPosition   : Int64;                                                        // the current position in the file (relative to the beginning of the file)
+    FCacheStart : Int64;                                                        // the postion in the file of the start of the cache (relative to the beginning of the file)
+    FCacheEnd   : Int64;                                                        // the postion in the file of the end of the cache (relative to the beginning of the file)
     FFileName   : string;
     FLastError  : DWORD;
     procedure HandleError(const Msg: string);
@@ -120,11 +126,11 @@ TYPE
     procedure RaiseSystemErrorFmt(const Msg: string; const Args: array of const);
     function  CreateHandle(FlagsAndAttributes: DWORD): THandle; virtual; abstract;
     function  GetFileSize: Int64; virtual;
-    procedure SetSize(NewSize: Longint); override;
-    procedure SetSize(const NewSize: Int64); override;
-    function  FileRead(var Buffer; Count: Longword): Integer;
+    procedure SetSize  (NewSize: Longint); override;
+    procedure SetSize  (const NewSize: Int64); override;
+    function  FileRead (var Buffer; Count: Longword): Integer;
     function  FileWrite(const Buffer; Count: Longword): Integer;
-    function  FileSeek(const Offset: Int64; Origin: TSeekOrigin): Int64;
+    function  FileSeek (const Offset: Int64; Origin: TSeekOrigin): Int64;
   public
     MagicNo: AnsiString;
     constructor Create(const FileName: string); overload;
@@ -556,7 +562,8 @@ begin
    begin
     FileSeek(FPosition+FViewStart, soBeginning);
     Result := FileRead(Buffer, Count);
-    if Result=-1 then Result := 0;         //contract is to return number of bytes that were read
+    if Result=-1
+    then Result := 0;         //contract is to return number of bytes that were read
     inc(FPosition, Result);
    end
   else
@@ -1371,25 +1378,4 @@ end;
 
 
 
-end.(*=============================================================================================
-
-
-
-
-
-del
-function GetFileSize2(CONST sFilename: string): Int64;                                             { works with big files  -  http://www.tek-tips.com/viewthread.cfm?qid=520316 }
-VAR BigFileStream: TFileStream;
-begin
- TRY
-   BigFileStream:= TFileStream.Create(sFilename, fmOpenRead or fmShareDenyNone);
-   TRY
-     Result:= BigFileStream.Size;
-   FINALLY
-     FreeAndNil(BigFileStream);
-   END;
- except_
-   Result:= 0;
- END;
-end;
-
+end.

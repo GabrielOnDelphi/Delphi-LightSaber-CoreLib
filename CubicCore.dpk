@@ -37,7 +37,6 @@ contains
   ccIO in 'ccIO.pas',
   ccWinVersion in 'ccWinVersion.pas',
   ccStreamBuff in 'ccStreamBuff.pas',
-  ccStreamFile in 'ccStreamFile.pas',
   ccBinary in 'ccBinary.pas',
   ccAppData in 'ccAppData.pas';
 

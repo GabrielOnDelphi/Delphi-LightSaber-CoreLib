@@ -1,8 +1,8 @@
 UNIT ccIO;
 
 {==================================================================================================
-  Gabriel Moraru
-  2021.10.15
+  CubicDesign
+  2021.10.23
   See Copyright.txt
 
   Super useful functions for file/folder/disk manipulation:
@@ -690,7 +690,7 @@ function SelectAFolder(VAR Folder: string; CONST Title: string = ''; CONST Optio
 VAR Dlg: TFileOpenDialog;
 begin
  { Win Vista and up }
- if ccWinVersion.OS_IsWindowsVistaUp then
+ if ccWinVersion.IsWindowsVistaUp then
   begin
    Dlg:= TFileOpenDialog.Create(NIL);   { Class for Vista and newer Windows operating systems style file open dialogs }
     TRY
