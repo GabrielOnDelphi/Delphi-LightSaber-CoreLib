@@ -1,25 +1,25 @@
 UNIT ccCore;
 
 {=============================================================================================================
-  CubicDesign
-  2021.10.23
-  See Copyright.txt
+   CubicDesign
+   2021.10.23
+   See Copyright.txt
 
-  Over 200 functions for:
-     String manipulation (string conversions, sub-string detection, word manipulation, cut, copy, split, wrap, etc)
-     Programmer's helper
-     Form manipulation
-     Advanced/easy message boxes
-     DateTime utilities
+   Over 200 functions for:
+      String manipulation (string conversions, sub-string detection, word manipulation, cut, copy, split, wrap, etc)
+      Programmer's helper
+      Form manipulation
+      Advanced/easy message boxes
+      DateTime utilities
 
 
 
-  By adding this unit to your app, the EXE fileszie will increase with adds 320KB (2MB for a console app)
-  JCL adds 205KB. See this for more info: c:\Google Drive\Delphi\Delphi documentation.rtf
+   By adding this unit to your app, the EXE fileszie will increase with adds 320KB (2MB for a console app)
+   JCL adds 205KB. See this for more info: c:\Google Drive\Delphi\Delphi documentation.rtf
 
-  See also: c:\MyProjects\Packages\AppControls v3.8.1\Sources\acUtils.pas
-  Tester:
-     c:\Myprojects\Project Testers\Global Cubic VCL tester\CubicVclCtrlsTester.dpr
+   See also: c:\MyProjects\Packages\AppControls v3.8.1\Sources\acUtils.pas
+   Tester:
+      c:\Myprojects\Project Testers\Global Cubic VCL tester\CubicVclCtrlsTester.dpr
 
 =============================================================================================================}
 
