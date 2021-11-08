@@ -73,8 +73,13 @@ _________________
        IsWindows10  
 
 
+Filename convention:
+The first 'c' stands for 'cubic', the second 'c' stands for 'core'. Example: ccBinary.pas
+This library is called 'core' because other libraries will be based on it. 
+
+
 _____
 
-This library is freeware.  
+This library is freeware (see included copyright notice).
 Click the 'Star' button (top-right corner) if you like this library.  
 Click the 'Watch' button if you want to get notified about updates.  
