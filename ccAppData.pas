@@ -1,25 +1,25 @@
 UNIT ccAppData;
 
 {==================================================================================================
-  CubicDesign
-  2021.10.23
-  See Copyright.txt
- ==================================================================================================
-  Application-wide functions:
-     Get application's system/appdata folder
-     Get application's INI file
-     Get application's command line parameters
-     Detect if the application is running for the firs this in a computer
-     Application self-restart
-     Application self-delete
-  The AppName global variable is the central part for the App/Ini/MesageBox functionality.
+   CubicDesign
+   2021.10.23
+   See Copyright.txt
+  ==================================================================================================
+   Application-wide functions:
+      Get application's system/appdata folder
+      Get application's INI file
+      Get application's command line parameters
+      Detect if the application is running for the firs this in a computer
+      Application self-restart
+      Application self-delete
+   The AppName global variable is the central part for the App/Ini/MesageBox functionality.
 
-  These units depend on this unit:
-    cvINIFileEx.pas - Allows you to save the state of your application (all checkboxes, radioboxes, etc) to a INI file with one single function call (SaveForm/LoadForm). AppName is used for the INI file name.
-    ccCore.pas (MesajInfo, MesajError, etc) - Allows you to show customized message/dialog boxes. AppName is shown in dialog's caption.
+   These units depend on this unit:
+     cvINIFileEx.pas - Allows you to save the state of your application (all checkboxes, radioboxes, etc) to a INI file with one single function call (SaveForm/LoadForm). AppName is used for the INI file name.
+     ccCore.pas (MesajInfo, MesajError, etc) - Allows you to show customized message/dialog boxes. AppName is shown in dialog's caption.
 
-  It is CRITICAL to set the AppName global var as soon as the application starts.
-  It MUST contain only I/O safe characters. By default it is initialized to an invalid value so you won't be able to start your app if you forget to initialize it.
+   It is CRITICAL to set the AppName global var as soon as the application starts.
+   It MUST contain only I/O safe characters. By default it is initialized to an invalid value so you won't be able to start your app if you forget to initialize it.
 ==================================================================================================}
 
 INTERFACE
@@ -65,6 +65,7 @@ VAR
  procedure AppRestart;
  procedure AppSelfDelete;
  procedure RestoreApp(MainForm: TForm);
+ function  RunSelfAtWinStartUp(Active: Boolean): Boolean;
 
 
 
@@ -339,7 +340,7 @@ end;
 
 
 { Bring the application back to screen (if minimized, in background, hidden) }
-procedure RestoreApp{(MainForm: TForm)};
+procedure RestoreApp(MainForm: TForm);
 begin
   MainForm.Visible:= TRUE;
   if MainForm.WindowState = wsMinimized
