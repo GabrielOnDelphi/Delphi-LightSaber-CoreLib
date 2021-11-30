@@ -1,16 +1,16 @@
 UNIT ccWinVersion;
 
 {=======================================================================================================================
-  CubicDesign
-  2021.10.23
-  See Copyright.txt
+   CubicDesign
+   2021.10.23
+   See Copyright.txt
 
-  This library provides 3 ways to get Windows version:
-     Using RtlGetVersion in NtDLL.dll    Win10 ok
-     Using GetVersionEx                  Win10 wrong results
-     Using NetServerGetInfo              Win10 ok
+   This library provides 3 ways to get Windows version:
+      Using RtlGetVersion in NtDLL.dll    Win10 ok
+      Using GetVersionEx                  Win10 wrong results
+      Using NetServerGetInfo              Win10 ok
 
-  A 4th alternative proposed by u_dzOsUtils.pas (dummzeuch) is GetKernel32Version which uses GetFileVersionInfo on kernel32.dll
+   A 4th alternative proposed by u_dzOsUtils.pas (dummzeuch) is GetKernel32Version which uses GetFileVersionInfo on kernel32.dll
 
   ---------------------------------------------
    Windows Serv 2019       10.0
@@ -106,7 +106,7 @@ function  WinMinorVersion: Integer;
 
 
 
-IMPLEMENTATION                                                                                 { Silence the: 'W1011 Text after final END' warning }
+IMPLEMENTATION    
 USES ccCore;
 
 

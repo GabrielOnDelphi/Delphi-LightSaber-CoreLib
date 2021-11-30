@@ -1,11 +1,11 @@
 UNIT ccIO;
 
 {==================================================================================================
-  CubicDesign
-  2021.10.23
-  See Copyright.txt
+   CubicDesign
+   2021.10.23
+   See Copyright.txt
 
-  Super useful functions for file/folder/disk manipulation:
+   Super useful functions for file/folder/disk manipulation:
      * Copy files
      * File/Folder Exists
      * Get special Windows folders (My Documents, etc)
@@ -73,7 +73,6 @@ INTERFACE
 USES
   winapi.Windows, Winapi.ShellAPI, Winapi.ShlObj, System.Win.Registry, System.Masks, System.Generics.Collections, System.Types, Vcl.Consts,
   System.StrUtils, System.IOUtils, System.SysUtils, System.Classes, Vcl.Controls, Vcl.Dialogs, Vcl.Forms, Vcl.FileCtrl;
- // ccStringList;
 
 CONST
   DigSubdirectories = TRUE;
@@ -446,7 +445,6 @@ USES
   ccWinVersion,
   ccAppData,
   ccStreamBuff,
-  //ccStreamFile,
   ccCore;
 
 
@@ -1059,7 +1057,9 @@ end;
 {--------------------------------------------------------------------------------------------------
    FILE - DETECT FILE TYPE
 --------------------------------------------------------------------------------------------------}
-function IsVideo(CONST AGraphFile: string): Boolean;    { Video files supported by FFVCL (cFrameServerAVI) }
+
+{ Video files supported by FFVCL (cFrameServerAVI) }
+function IsVideo(CONST AGraphFile: string): Boolean;
 VAR sExtension: string;
 begin
  sExtension:= ExtractFileExtIns(AGraphFile);
@@ -2605,7 +2605,9 @@ end;
 {--------------------------------------------------------------------------------------------------
                            FOLDER COPY/MOVE
 --------------------------------------------------------------------------------------------------}
-function CopyFolder(CONST FromFolder, ToFolder : String; Overwrite: Boolean): integer;             { Copy its CONTENT, all its files and subfolders. Intoarce un numar care arata cate fisiere nu au fost copiate (probleme) }
+{ Copy its CONTENT, all its files and subfolders.
+  Returns how many files were not copied. So it returns 0 for 'ok' }
+function CopyFolder(CONST FromFolder, ToFolder : String; Overwrite: Boolean): integer;
 VAR
   SearchRec : TSearchRec;
   Src, Dst  : string;

@@ -1,10 +1,9 @@
 UNIT ccStreamBuff;
 
 {-----------------------------------------------------------------------------------------------------------------------
-  CubicDesign
-  2021.10.23
-  See Copyright.txt
-  Based on: stackoverflow.com/questions/5639531
+   2021.10.23
+   See Copyright.txt
+   Based on: stackoverflow.com/questions/5639531
 
    Description
      Direct read/write bytes, cardinals, words, integers, strings to a buffred (binary) file.
