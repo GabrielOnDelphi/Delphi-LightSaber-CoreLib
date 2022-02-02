@@ -37,10 +37,10 @@ _________________
      
 **ccAppData.pas**  
   Application-wide functions:  
-     Get application's system/appdata folder  
-     Get application's INI file  
+     Get application's system/appdata folder  (Example: c:\Users\UserName\AppData\Roaming\AppName\System\)
+     Get application's INI file  (Example: c:\Users\UserName\AppData\Roaming\AppName\AppName.ini )
      Get application's command line parameters  
-     Detect if the application is running for the firs this in a computer  
+     Detect if the application is running for the first time in this computer  
      Application self-restart  
      Application self-delete  
    
