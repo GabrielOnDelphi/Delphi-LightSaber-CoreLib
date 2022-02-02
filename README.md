@@ -110,4 +110,5 @@ Example:
   
 _____
 
-This library is freeware (see included copyright notice).
+This library is freeware (see included copyright notice). The requirements are quite relaxed and involve no legalese. 
+So, enjoy and "Star" the library if it is useful to you.
