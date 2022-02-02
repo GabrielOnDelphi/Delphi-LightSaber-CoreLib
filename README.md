@@ -5,7 +5,9 @@ Lightweight alternative to Jedi library.
 Simple, crystal clear, non-obfuscated, fully commented code.   
 No external dependencies.   
   
-Click the **'Star'** button (top-right corner) if you like this library (I will keep adding files if it gets enough Stars)
+**This library will be expanded it gets enough Stars.** Click the 'Star' button (top-right corner) if you like this library.  
+Over 100 files are waiting to be cured and added: graphichs, simple encryption, internet functions (including file download routines), HTML manipulation, image manipulation, registry, math and LOTS of visual components!
+
 Click the 'Watch' button if you want to get notified about updates.  
 _________________
 
@@ -86,20 +88,20 @@ _________________
 
 _____
 
-**Filename convention**
+**Filename convention**  
+  
+The first 'c' stands for 'cubic', the second 'c' stands for 'core'.  
+This library is called 'core' because other libraries will be based on it.  
+'cv' - cubic visual components  
+'cGraph' - cubic graphic library  
 
-The first 'c' stands for 'cubic', the second 'c' stands for 'core'. 
-This library is called 'core' because other libraries will be based on it. 
-'cv' - cubic visual components
-'cGraph' - cubic graphic library
-
-Examples: 
-     * ccBinary.pas
-     * cvMemo.pas
-     * cGraphFX.pas
-
+Example:   
+     * ccBinary.pas  
+     * cvMemo.pas  
+     * cGraphFX.pas  
+  
 _____
 
 This library is freeware (see included copyright notice).
-This library will be expanded soon (graphichs, simple encryption, internet, HTML manipulation, image manipulation, registry, math, lots of visual components).
+
 
