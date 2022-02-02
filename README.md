@@ -88,12 +88,12 @@ _________________
 **Resume application**
 
 Do you have applications with forms with lots of controls (like checkboxes) and you want to save its status to disk on shutdown and resume exaclty from where you left on application startup?    
-Use:   
-   SaveForm(MySettingsForm) on TMySettingsForm.OnDestroy    
-   LoadForm(MySettingsForm) on TMySettingsForm.OnCreate     
-from cvINIFileEx.pas (to be added as soon as the project receives 50 Stars).  
- 
+Use SaveForm/LoadForm from cvINIFileEx.pas (to be added as soon as the project receives 50 Stars).  
+Example:
+     * Call SaveForm(MySettingsForm) in TMySettingsForm.OnDestroy    
+     * Call LoadForm(MySettingsForm) in TMySettingsForm.OnCreate     
 
+ 
 _____
 
 **Filename convention**  
