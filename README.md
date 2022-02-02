@@ -98,15 +98,15 @@ _____
 
 **Filename convention**  
   
-The first 'c' stands for 'cubic', the second 'c' stands for 'core'.  
-This library is called 'core' because other libraries will be based on it.  
-'cv' - cubic visual components  
-'cGraph' - cubic graphic library  
+- 'c' -> The first c stands for 'cubic', 
+- 'c' -> The second 'c' stands for 'core'.  All files I posted in library/repository are 'core' because other libraries will be based on them.  
+- 'v'-> visual component 
+- 'Graph'-> graphic library  
 
 Example:   
-- ccBinary.pas  
-- cvMemo.pas  
-- cGraphFX.pas  
+- ccBinary.pas  (Cubic core library)
+- cvMemo.pas    (Cubic visual component)
+- cGraphFX.pas  (Cubic graphic library) 
   
 _____
 
