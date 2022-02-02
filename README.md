@@ -38,7 +38,6 @@ _________________
      * Drive manipulation (IsDiskInDrive, etc)    
      * etc  
      
-     
 **ccAppData.pas**  
   Application-wide functions:  
      * Get application's system/appdata folder  (Example: c:\Users\UserName\AppData\Roaming\AppName\System\)
@@ -85,6 +84,14 @@ _________________
      * IsWindows8Up  
      * IsWindows10  
      * etc   
+
+**Resume application**
+Do you have applications with lots of forms / lots of controls (like checkboxes) and you want to save its status to disk on shutdown and resume exaclty from where you left on application startup?
+Use:
+   SaveForm(MySettingsForm) on TMySettingsForm.OnDestroy
+   LoadForm(MySettingsForm) on TMySettingsForm.OnCreate  
+from cvINIFileEx.pas
+
 
 _____
 
