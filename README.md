@@ -28,7 +28,7 @@ _________________
      * File/Folder Exists    
      * Get special Windows folders (My Documents, etc)  
      * Prompt user to select a file/folder  
-     * List specified files (*.jpg for ex) in a folder and all its sub-folders  
+     * List specified files (.jpg for ex) in a folder and all its sub-folders  
      * Increment the numbers in a filename (good for incremental backups)  
      * Append strings to file name  
      * Read text from files to a string variable  
@@ -89,9 +89,9 @@ _________________
 
 Do you have applications with forms with lots of controls (like checkboxes) and you want to save its status to disk on shutdown and resume exaclty from where you left on application startup?    
 Use SaveForm/LoadForm from cvINIFileEx.pas (to be added as soon as the project receives 50 Stars).  
-Example:
-     * Call SaveForm(MySettingsForm) in TMySettingsForm.OnDestroy    
-     * Call LoadForm(MySettingsForm) in TMySettingsForm.OnCreate     
+Example:   
+     * Call SaveForm(MySettingsForm) in TMySettingsForm.OnDestroy     
+     * Call LoadForm(MySettingsForm) in TMySettingsForm.OnCreate      
 
  
 _____
