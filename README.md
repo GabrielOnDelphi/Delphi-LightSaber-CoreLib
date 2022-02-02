@@ -5,8 +5,8 @@ Lightweight alternative to Jedi library.
 Simple, crystal clear, non-obfuscated, fully commented code.   
 No external dependencies.   
   
-This library will be expanded soon (graphichs, simple encryption, internet, HTML manipulation, image manipulation, registry, math, lots of visual components).
-
+Click the **'Star'** button (top-right corner) if you like this library (I will keep adding files if it gets enough Stars)
+Click the 'Watch' button if you want to get notified about updates.  
 _________________
 
 
@@ -50,39 +50,39 @@ _________________
 **ccStreamBuff.pas**  
      Buffered file access (VERY fast reading/writing to a file). 
      Adds new functionality that does not exist in Delphi's original stream classes:
-       Read/WriteBoolean
-       Read/WriteString (ansi, unicode)
-       Read/WriteInteger
-       Read/WriteCardinal
-       Read/WriteDate
-       Read/Write mac files (inverted byte endianness) 
-       etc   
+     * Read/WriteBoolean
+     * Read/WriteString (ansi, unicode)
+     * Read/WriteInteger
+     * Read/WriteCardinal
+     * Read/WriteDate
+     * Read/Write mac files (inverted byte endianness) 
+     * etc   
      
 **ccStreamFile.pas**  
      Expansion class for Delphi classical TFileStream. Allows you to directly read/write bytes, cardinals, words, integers, strings to a (binary) files.  
      
 **ccBinary.pas**  
-     String to hex, hex to string conversions (and many others)  
-     Binary numbers (endianness) swapping  
-     Data serialization  
-     Bit manipulation (set bit, etc)  
-     Reverse bits  
-     Endianess
-     etc   
+     * String to hex, hex to string conversions (and many others)  
+     * Binary numbers (endianness) swapping  
+     * Data serialization  
+     * Bit manipulation (set bit, etc)  
+     * Reverse bits  
+     * Endianess
+     * etc   
 
 **ccWinVersion.pas**
      This library provides 3 ways to get Windows version.  
      Example of functions:   
-       IsWindowsXP  
-       IsWindowsXPUp  
-       IsWindowsVista    
-       IsWindowsVistaUp  
-       IsWindows7  
-       IsWindows7Up  
-       IsWindows8  
-       IsWindows8Up  
-       IsWindows10  
-       etc   
+     * IsWindowsXP  
+     * IsWindowsXPUp  
+     * IsWindowsVista    
+     * IsWindowsVistaUp  
+     * IsWindows7  
+     * IsWindows7Up  
+     * IsWindows8  
+     * IsWindows8Up  
+     * IsWindows10  
+     * etc   
 
 _____
 
@@ -98,9 +98,8 @@ Examples:
      * cvMemo.pas
      * cGraphFX.pas
 
-
 _____
 
 This library is freeware (see included copyright notice).
-Click the 'Star' button (top-right corner) if you like this library.  
-Click the 'Watch' button if you want to get notified about updates.  
+This library will be expanded soon (graphichs, simple encryption, internet, HTML manipulation, image manipulation, registry, math, lots of visual components).
+
