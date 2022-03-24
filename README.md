@@ -5,7 +5,7 @@ Lightweight (only 10000 lines of code) alternative to Jedi library.
 Simple, crystal clear, non-obfuscated, fully commented code.   
 No external dependencies.   
   
-**This library will be expanded it gets enough Stars.** Click the 'Star' button (top-right corner) if you like this library.  
+**This library will be expanded if it gets enough Stars.** Click the 'Star' button (top-right corner) if you like this library.  
 Over 100 files are waiting to be cured and added: graphichs, simple encryption, internet functions (including file download routines), HTML manipulation, image manipulation, registry, math and LOTS of visual components!
 
 Click the 'Watch' button if you want to get notified about updates.  
