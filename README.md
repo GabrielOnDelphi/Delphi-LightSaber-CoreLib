@@ -110,5 +110,7 @@ Example:
   
 _____
 
-This library is freeware (see included copyright notice). The requirements are quite relaxed and involve no legalese. 
-So, enjoy and "Star" the library if it is useful to you.
+This library is freeware (see included copyright notice). 
+The library cannot be used in Russia!
+
+Enjoy and "Star" the library if it is useful to you.
