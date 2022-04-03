@@ -61,7 +61,8 @@ It may be used as a drop-in replacement for TFileStream.
   
      
 **ccStreamFile.pas**  
-     Expansion class for Delphi classical TFileStream. Allows you to directly read/write bytes, cardinals, words, integers, strings to a (binary) files.  
+     Expansion class for Delphi classical TFileStream.   
+     Allows you to directly read/write bytes, cardinals, words, integers, strings to a (binary) files.  
      Now replaced by ccStreamBuff.
      
 **ccBinary.pas**  
@@ -89,7 +90,6 @@ Example of functions:
 - etc   
 
 **ccINIFile**  
-
 Features:  
 - Extends the capabilities of TIniFile  
 - Functions for easily accessing application's default INI file.  
@@ -99,9 +99,10 @@ Setup:
      The class will use that name to automatically determine the INI file name/path which is %AppData%\AppName.Ini.  
      Example: If the AppName is set to "DelphiLightSaber" the ini file will be  "c:\Users\UserName\AppData\Roaming\DelphiLightSaber\DelphiLightSaber.ini" 
  
+ 
 **And... the cherry on the top of the cake was left at the end!**
 
-Resume application's GUI state via ccINIFileVCL.pas 
+Resume application's GUI state via **ccINIFileVCL.pas** 
 
 Do you have applications with forms with lots of controls (like checkboxes/radiobuttons) and you want to save its status to disk on shutdown and resume exaclty from where you left on application startup with just one function call?  
   Use SaveForm/LoadForm.  
