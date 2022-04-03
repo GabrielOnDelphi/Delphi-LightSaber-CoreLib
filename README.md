@@ -48,23 +48,20 @@ Application-wide functions:
 - etc
      
 **ccStreamBuff.pas**  
-Extends TBufferedFileStream
-This class adds new functionality that does not exist in Delphi's original stream classes:
-- Read/WriteBoolean
-- Read/WriteString (ansi, unicode)
-- Read/WriteInteger
-- Read/WriteCardinal
-- Read/WriteDate
-- Read/Write mac files (inverted byte endianness)
-- etc
-
-TBufferedFileStream provides VERY fast reading/writing access to a file
-TBufferedFileStream is optimized for multiple consecutive small reads or writes.
-TBufferedFileStream will not give performance gain, when there are random position reads or writes, or large reads or writes.
-TBufferedFileStream may be used as a drop-in replacement for TFileStream.   
+Extends TBufferedFileStream.  
+This class adds new functionality that does not exist in Delphi's original stream classes:  
+- Read/WriteBoolean  
+- Read/WriteString (Ansi/Unicode)  
+- Read/WriteInteger  
+- Read/WriteCardinal  
+- Read/WriteDate  
+- Read/Write mac files (inverted byte endianness)  
+- etc  
+It may be used as a drop-in replacement for TFileStream.  
+  
      
 **ccStreamFile.pas**  
-     Expansion class for Delphi classical TFileStream. Allows you to directly read/write bytes, cardinals, words, integers, strings to a (binary) files.
+     Expansion class for Delphi classical TFileStream. Allows you to directly read/write bytes, cardinals, words, integers, strings to a (binary) files.  
      Now replaced by ccStreamBuff.
      
 **ccBinary.pas**  
@@ -76,7 +73,7 @@ TBufferedFileStream may be used as a drop-in replacement for TFileStream.
 - Endianess
 - etc   
 
-**ccWinVersion.pas**
+**ccWinVersion.pas**  
 This library expands the TOSVersion.  
 Use it to get Windows version.  
 Example of functions:    
@@ -91,17 +88,6 @@ Example of functions:
 - IsWindows10  
 - etc   
 
-**Resume application's GUI state**
-
-ccINIFileVCL.pas 
-
-Do you have applications with forms with lots of controls (like checkboxes/radiobuttons) and you want to save its status to disk on shutdown and resume exaclty from where you left on application startup with just one function call?  
-  Use SaveForm/LoadForm.  
-
-Example:   
-- Call SaveForm(MySettingsForm) in TMySettingsForm.OnDestroy     
-- Call LoadForm(MySettingsForm) after the creation of TMySettingsForm     
-
 **ccINIFile**  
 
 Features:  
@@ -113,6 +99,17 @@ Setup:
      The class will use that name to automatically determine the INI file name/path which is %AppData%\AppName.Ini.  
      Example: If the AppName is set to "DelphiLightSaber" the ini file will be  "c:\Users\UserName\AppData\Roaming\DelphiLightSaber\DelphiLightSaber.ini" 
  
+**And... the cherry on the top of the cake was left at the end!**
+
+Resume application's GUI state via ccINIFileVCL.pas 
+
+Do you have applications with forms with lots of controls (like checkboxes/radiobuttons) and you want to save its status to disk on shutdown and resume exaclty from where you left on application startup with just one function call?  
+  Use SaveForm/LoadForm.  
+
+Example:   
+- Call SaveForm(MySettingsForm) in TMySettingsForm.OnDestroy     
+- Call LoadForm(MySettingsForm) after the creation of TMySettingsForm     
+
 _____
 
 **Filename convention**  
