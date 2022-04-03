@@ -39,14 +39,13 @@ _________________
 - etc  
      
 **ccAppData.pas**  
-  Application-wide functions:  
-- Get application's system/appdata folder  (Example: c:\Users\UserName\AppData\Roaming\AppName\System\)
-- Get application's INI file  (Example: c:\Users\UserName\AppData\Roaming\AppName\AppName.ini )
-- Get application's command line parameters  
-- Detect if the application is running for the first time in this computer  
-- Application self-restart  
-- Application self-delete  
-- etc   
+   Application-wide functions:
+     - Get application's appdata folder (the folder where you save temporary, app-related and ini files)
+     - Get application's command line parameters
+     - Detect if the application is running for the firs this in a computer
+     - Application self-restart
+     - Application self-delete
+     - etc
      
 **ccStreamBuff.pas**  
      Buffered file access (VERY fast reading/writing to a file). 
