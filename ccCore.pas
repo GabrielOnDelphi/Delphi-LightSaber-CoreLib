@@ -2,7 +2,7 @@ UNIT ccCore;
 
 {=============================================================================================================
    CubicDesign
-   2021.10.23
+   2022-04-03
    See Copyright.txt
 
    Over 200 functions for:
@@ -13,9 +13,8 @@ UNIT ccCore;
       DateTime utilities
 
 
-
    By adding this unit to your app, the EXE fileszie will increase with adds 320KB (2MB for a console app)
-   JCL adds 205KB. See this for more info: c:\Google Drive\Delphi\Delphi documentation.rtf
+   See this for more info: c:\Google Drive\Delphi\Delphi documentation.rtf
 
    See also: c:\MyProjects\Packages\AppControls v3.8.1\Sources\acUtils.pas
    Tester:
@@ -26,17 +25,9 @@ UNIT ccCore;
 INTERFACE
 
 USES
-   Winapi.Windows, Winapi.Messages,
-   Winapi.mmSystem,    { mmSystem - needed for PlaySound}
-   System.UITypes, System.TypInfo,
-   System.AnsiStrings, System.Character,
-   System.SysUtils, System.Classes,
-   System.Types,
-   System.TimeSpan, System.DateUtils,
-   Generics.Collections,
-   Vcl.Controls, Vcl.Forms,
-   Vcl.Dialogs,
-   Vcl.Graphics;
+   Winapi.Windows, Winapi.Messages, Winapi.MMSystem,
+   System.AnsiStrings, System.Character, System.SysUtils, System.Classes, System.Types, System.TimeSpan, System.DateUtils, Generics.Collections,
+   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Graphics;
 
 CONST
    { Enters - For crossplatform use: system.sLineBreak }
@@ -349,7 +340,7 @@ TYPE
  function  Reverse             (CONST s: String): string; deprecated 'ccCore.Reverse is deprecated. Use System.StrUtils.ReverseString';
 
  // Shorten text and put ellipsis in it
- // ShortenString & GetEllipsisText moved to cEllipsisText.pas
+ // ShortenString & GetEllipsisText moved to cmEllipsisText.pas
 
  // MAKE STRING
  function  MakeStringLongRight (CONST s: AnsiString; c: AnsiChar; CONST ForcedLength: integer): AnsiString;   overload;
@@ -362,7 +353,7 @@ TYPE
  function  LeadingZerosAuto    (CONST s: string; CONST MaxValue: integer): string;                            { Same as above except_ that the user doesn't have to specify how many zeros to add. Instead the function will determine this automaticxally based on the number received as parameter. For example LeadingZeros('1', 50) will generate '01' but LeadingZeros('1', 500) will generate '001' }
 
  // WRAP
- //See cWrapString.pas
+ //See cmWrapString.pas
 
  // TStringList
  function  String2TSL          (s: string): TStringList;                                                      { Converts a string to a TStringList. In other words it breaks the text to multiple lines. I need to call Free after this! }
@@ -495,7 +486,7 @@ TYPE
    VCL Controls
    VCL Menus & Actions
 =============================================================================================================}
-  { See: cVclUtils.pas }
+  { See: cmVclUtils.pas }
 
 
 
@@ -580,7 +571,7 @@ type
 IMPLEMENTATION
 
 USES
-   System.Math, System.IOUtils, Vcl.Themes, System.StrUtils, ccStreamBuff, ccAppData;
+  System.Math, System.IOUtils, Vcl.Themes, System.StrUtils, ccStreamBuff, ccAppData;
 
 
 
@@ -660,10 +651,13 @@ end;
 
 { Brings the form back into the screen, IF it was outside the screen.
   Usage:  CorrectFormScreenPosition(Self).
-  Call it AFTER cvINIFileEx.LoadForm(). }
+  It is automaticalled by cvIniFileVclEx.LoadForm.
+
+  Screen.WorkArea -> Specifies the work area on the Primary monitor.
+  DesktopWidth    -> Determines the width of the desktop. The desktop is defined as the entire virtual desktop, which includes all monitors in the system. On a single-monitor system, DesktopWidth corresponds to Width. }
 Procedure CorrectFormPositionScreen(Form: TForm);                                                             { Old name: RepairPositionOnScreen }
 begin
- CorrectCtrlPosition(Form, Screen.WorkAreaWidth, Screen.WorkAreaHeight);
+ CorrectCtrlPosition(Form, Screen.DesktopWidth, Screen.DesktopHeight);
 end;
 
 
@@ -2353,12 +2347,12 @@ end;
 
 function GetEnterTypeS(InputFile: string): string;
 VAR
-   InpStream: TReadCachedStream;
+   InpStream: TCubicBuffStream;
 begin
  if NOT FileExists(InputFile)
  then raise exception.Create('Input file does not exist!');
 
- InpStream:= TReadCachedStream.Create(InputFile);
+ InpStream:= TCubicBuffStream.Create(InputFile, fmOpenRead);
  TRY
   case GetEnterType(InpStream) of
     etWin: result:= 'Win';
@@ -2503,14 +2497,14 @@ end;
 
 procedure WinToUnix(InputFile, OutputFile: String; Notify: TConvertNotify);
 VAR
-   InpStream: TReadCachedStream;
-   OutStream: TWriteCachedStream;
+   InpStream: TCubicBuffStream;
+   OutStream: TCubicBuffStream;
 begin
  if NOT FileExists(InputFile)
  then raise exception.Create('Input file does not exist!');
 
- InpStream:= TReadCachedStream.Create(InputFile);
- OutStream:= TWriteCachedStream.Create(OutputFile);
+ InpStream:= TCubicBuffStream.Create(InputFile, fmOpenRead);
+ OutStream:= TCubicBuffStream.Create(OutputFile, fmOpenWrite OR fmCreate);
  TRY
   WinToUnix(InpStream, OutStream, Notify);
  FINALLY
@@ -2523,14 +2517,14 @@ end;
 
 procedure UnixToWin(InputFile, OutputFile: String; Notify: TConvertNotify);
 VAR
-   InpStream: TReadCachedStream;
-   OutStream: TWriteCachedStream;
+   InpStream: TCubicBuffStream;
+   OutStream: TCubicBuffStream;
 begin
  if NOT FileExists(InputFile)
  then raise exception.Create('Input file does not exist!');
 
- InpStream:= TReadCachedStream.Create(InputFile);
- OutStream:= TWriteCachedStream.Create(OutputFile);
+ InpStream:= TCubicBuffStream.Create(InputFile, fmOpenRead);
+ OutStream:= TCubicBuffStream.Create(OutputFile, fmOpenWrite OR fmCreate);
  TRY
   UnixToWin(InpStream, OutStream, Notify);
  FINALLY
@@ -2543,18 +2537,18 @@ end;
 
 function MacToWin(InputFile, OutputFile: string): Boolean;                                         { CR to CRLF. Not tested! }
 VAR
-   InpStream: TReadCachedStream;
-   OutStream: TWriteCachedStream;
+   InpStream: TCubicBuffStream;
+   OutStream: TCubicBuffStream;
 begin
  if NOT FileExists(InputFile)
  then raise exception.Create('Input file does not exist!');
 
- InpStream:= TReadCachedStream.Create(InputFile);
+ InpStream:= TCubicBuffStream.Create(InputFile, fmOpenRead);
  TRY
   Result:= IsMacFile(InpStream);
   if Result then
    begin
-    OutStream:= TWriteCachedStream.Create(OutputFile);
+    OutStream:= TCubicBuffStream.Create(OutputFile, fmOpenWrite OR fmCreate);
     TRY
      InpStream.Position:= 0;    { Needs reset because of IsMacFile }
      MacToWin(InpStream, OutStream);
@@ -2814,7 +2808,7 @@ begin
  Result:= System.IOUtils.TPath.GetGUIDFileName;
 
  if Len > 32
- then raise exception.Create('Maximum supported length is 64!')
+ then RAISE Exception.Create('Maximum supported length is 64!')
  else Result:= system.COPY(Result, 1, Len);
 end;
 

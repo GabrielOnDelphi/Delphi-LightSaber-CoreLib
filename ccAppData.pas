@@ -2,12 +2,11 @@ UNIT ccAppData;
 
 {==================================================================================================
    CubicDesign
-   2021.10.23
+   2022-04-03
    See Copyright.txt
   ==================================================================================================
    Application-wide functions:
       Get application's system/appdata folder
-      Get application's INI file
       Get application's command line parameters
       Detect if the application is running for the firs this in a computer
       Application self-restart
@@ -15,7 +14,7 @@ UNIT ccAppData;
    The AppName global variable is the central part for the App/Ini/MesageBox functionality.
 
    These units depend on this unit:
-     cvINIFileEx.pas - Allows you to save the state of your application (all checkboxes, radioboxes, etc) to a INI file with one single function call (SaveForm/LoadForm). AppName is used for the INI file name.
+     cvIniFileVclEx.pas - Allows you to save the state of your application (all checkboxes, radioboxes, etc) to a INI file with one single function call (SaveForm/LoadForm). AppName is used for the INI file name.
      ccCore.pas (MesajInfo, MesajError, etc) - Allows you to show customized message/dialog boxes. AppName is shown in dialog's caption.
 
    It is CRITICAL to set the AppName global var as soon as the application starts.
@@ -23,7 +22,6 @@ UNIT ccAppData;
 ==================================================================================================}
 
 INTERFACE
-{$WARN GARBAGE OFF}
 
 USES
   Winapi.Windows,
@@ -35,37 +33,34 @@ USES
   System.Classes,
   Vcl.Forms;
 
+CONST
+   AppNotInitialized = 'Application not properly initialized.'+#13#10#13#10+ 'PLEASE REPORT the steps necessary to reproduce this bug and restart the application.';
+
 VAR
-   AppName: string= '? Invalid AppName';
-   AppInitializing: Boolean= True;    { Used in cvINIFileEx.pas. Set it to false once your app finished initializing. }
-
-
-{--------------------------------------------------------------------------------------------------
-   App PATHS
---------------------------------------------------------------------------------------------------}
- function  GetAppDir          : string;
- function  GetAppSysDir       : string;
-
- function  ForceAppDataFolder : string;
- function  GetAppDataFolder   : string;
- function  GetAppDataFolderAllUsers(CONST AppName: string): string;
-
+   AppName: string= '';
+   AppInitializing: Boolean= True;        { Used in cvIniFileVclEx.pas. Set it to false once your app finished initializing. }
 
 {--------------------------------------------------------------------------------------------------
-   App NAME
+   App path/name
 --------------------------------------------------------------------------------------------------}
- function  AppShortName: string;   { Returns the name of the app (exe name without extension) }
- function  AppIniFile: string;
+ function  AppDir    : string;
+ function  AppSysDir : string;
+
+ function  AppDataFolder(ForceDir: Boolean= FALSE): string;
+ function  AppDataFolderAllUsers: string;
+
+ function  AppShortName: string;
 
 
 {--------------------------------------------------------------------------------------------------
    App Control
 --------------------------------------------------------------------------------------------------}
- function  RunningFirstTime: Boolean;
+ function  AppRunningFirstTime: Boolean;
  procedure AppRestart;
  procedure AppSelfDelete;
  procedure RestoreApp(MainForm: TForm);
  function  RunSelfAtWinStartUp(Active: Boolean): Boolean;
+ function  RunFileAtWinStartUp(FilePath: string; Active: Boolean): Boolean;                             { Porneste anApp odata cu windows-ul }
 
 
 
@@ -92,7 +87,7 @@ VAR
 {--------------------------------------------------------------------------------------------------
    BetaTester tools
 --------------------------------------------------------------------------------------------------}
- function  RunningHome: Boolean;
+ function  AppRunningHome: Boolean;
  function  BetaTesterMode: Boolean;
  function  IsHardCodedExp(Year, Month, Day: word): Boolean;
 
@@ -106,8 +101,9 @@ VAR
 
 
 IMPLEMENTATION
+
 USES
-  ccCore, ccIO;
+  ccCore, ccIO, ccINIFile;
 
 
 
@@ -115,7 +111,7 @@ USES
 { Returns the folder where the EXE file resides
   The path ended with backslash. Works with UNC paths.
   Example: c:\Program Files\MyCoolApp\ }
-function GetAppDir: string;
+function AppDir: string;
 begin
  Result:= ExtractFilePath(Application.ExeName);
 end;
@@ -124,9 +120,9 @@ end;
 { Returns the folder where the EXE file resides plus one extra folder called 'System'
   The path ended with backslash. Works with UNC paths.
   Example: c:\Program Files\MyCoolApp\System\ }
-function GetAppSysDir: string;
+function AppSysDir: string;
 begin
- Result:= GetAppDir+ 'system\';
+ Result:= AppDir+ 'system\';
 end;
 
 
@@ -145,29 +141,31 @@ end;
 
 
 { Returns the path to current user's AppData folder on Windows, and to the current user's home directory on Mac OS X.
-  Example:  c:\Documents and Settings\UserName\Application Data\AppName\ }
-function GetAppDataFolder: string;
+  Example:  c:\Documents and Settings\UserName\Application Data\AppName\
+  if ForceDir then it creates the folder (full path) where the INI file will be written.
+}
+function AppDataFolder(ForceDir: Boolean = FALSE): string;
 begin
+ Assert(AppName > '', 'AppName is empty!');
  Assert(System.IOUtils.TPath.HasValidFileNameChars(AppName, FALSE), 'Invalid chars in AppName: '+ AppName);
+
  Result:= Trail(Trail(System.SysUtils.GetHomePath)+ AppName);
+ if ForceDir then ForceDirectories(Result);
 end;
 
 
 { Example: 'C:\Documents and Settings\All Users\Application Data\AppName' }
-function GetAppDataFolderAllUsers(CONST AppName: string): string;
+function AppDataFolderAllUsers: string;
 begin
+ Assert(AppName > '', 'AppName is empty!');
+ Assert(System.IOUtils.TPath.HasValidFileNameChars(AppName, FALSE), 'Invalid chars in AppName: '+ AppName);
+
  Result:= Trail(GetSpecialFolder(CSIDL_COMMON_APPDATA)+ AppName);
  if NOT DirectoryExists(Result)
  then ForceDirectories(Result);
 end;
 
 
-{ Creates the folder (full path) where the INI file will be written. }
-function ForceAppDataFolder: string;
-begin
- Result:= GetAppDataFolder;
- ForceDirectories(Result);
-end;
 
 
 
@@ -182,24 +180,15 @@ end;
    APP UTILS
 -----------------------------------------------------------------------------------------------------------------------}
 
-{ Returns the name of the INI file (where we will write application's settings).
-  It is based on the name of the application.
-  Example: c:\Documents and Settings\Bere\Application Data\MyApp\MyApp.ini }
-function AppIniFile: string;                                                                                  { Old name: GetAppIniFile }
-begin
- Result:= GetAppDataFolder+ AppName+ '.ini';
-end;
-
-
 { Returns true if the application is running for the first time in this computer }
-function RunningFirstTime: Boolean;
+function AppRunningFirstTime: Boolean;
 begin
  Result:= NOT FileExists(AppIniFile);
 end;
 
 
 { Returns true if the application is "home" (in the computer where it was created). This is based on the presence of a DPR file that has the same name as the exe file. }
-function RunningHome: Boolean;
+function AppRunningHome: Boolean;
 begin
  Result:= FileExists(ChangeFileExt(Application.ExeName, '.dpr'));
 end;
@@ -208,7 +197,7 @@ end;
 { Returns true if a file called 'betatester' exists in application's folder or in application's system folder. }
 function BetaTesterMode: Boolean;
 begin
- Result:= FileExists(GetAppSysDir+ 'betatester') OR FileExists(GetAppDir+ 'betatester');
+ Result:= FileExists(AppSysDir+ 'betatester') OR FileExists(AppDir+ 'betatester');
 end;
 
 
@@ -220,10 +209,10 @@ VAR
    s: string;
    HardCodedDate: TDateTime;
 begin
- if FileExists(GetAppDir+ 'dvolume.bin')        { If file exists, ignore the date passed as parameter and use the date written in file }
+ if FileExists(AppDir+ 'dvolume.bin')        { If file exists, ignore the date passed as parameter and use the date written in file }
  then
   begin
-   s:= StringFromFile(GetAppDir+ 'dvolume.bin');
+   s:= StringFromFile(AppDir+ 'dvolume.bin');
    HardCodedDate:= StrToInt64Def(s, 0);
    Result:= round(HardCodedDate- Date) <= 0;     { For example: 2016.07.18 is 3678001053146ms. One day more is: 3678087627949 }
    //todayInMilliseconds := round((Now+1) * SecsPerDay * 1000);

@@ -1,789 +1,156 @@
 UNIT ccStreamBuff;
+{$WARN DUPLICATE_CTOR_DTOR OFF}
 
-{-----------------------------------------------------------------------------------------------------------------------
-   2021.10.23
-   See Copyright.txt
-   Based on: stackoverflow.com/questions/5639531
+{==================================================================================================
+  CubicDesign
+  2022-04-03
 
-   Description
-     Direct read/write bytes, cardinals, words, integers, strings to a buffred (binary) file.
-     For even faster access, use ccStreamFile.pas (disadvantage: ccStreamFile reads the whole file content to RAM).
+  Replacement for ccStreamBuff by Hefferman.
+  When reading character by character, the new System.Classes.TBufferedFileStream seems to be 210% faster than ccStreamBuff (Test done under Sydney).
 
-   Read type
-     ONLY works for linear reading!
-     For random-access consider ccStreamFile.pas
-
-   Details:
-     Windows file caching is very effective, especially if you are using Vista or later. TFileStream is a loose wrapper around
-     the Windows ReadFile() and WriteFile() API functions and for many use cases the only thing faster is a memory mapped file.
-
-     However, there is one common scenario where TFileStream becomes a performance bottleneck.
-     That is if you read or write small amounts of data with each call to the stream read or write
-     functions. For example if you read an array of integers one item at a time then you incur a
-     significant overhead by reading 4 bytes at a time in the calls to ReadFile().
-
-     Again, memory mapped files are an excellent way to solve this bottleneck, but the other commonly used approach is
-     to read a much larger buffer, many kilobytes say, and then resolve future reads of the stream from this in memory
-     cache rather than further calls to ReadFile(). This approach only really works for sequential access.
+  TBufferedFileStream adds buffering to the TFileStream.
+  This optimizes multiple consecutive small writes or reads. TBufferedFileStream will not give performance gain, when there are random position reads or writes, or large reads or writes.
+  TBufferedFileStream may be used as a drop in replacement for TFileStream.
 
 
------------------------------------------------------------------------------------------------------------------------
+  File Mode:
+     fmCreate        - Create a file with the given name. If a file with the given name exists, override the existing file and open it in write mode. Destroys any file that's already there. (size will be zero)
+     fmOpenRead      - Open the file for reading only.
+     fmOpenWrite     - Open the file for writing only. Writing to the file completely REPLACES the current contents.
+     fmOpenReadWrite - Open the file to modify the current contents rather than replace them.
 
-   Speed tests (2017):
-     Reading a 317MB SFF file.
-     Delphi streams: 9.84sec
-     This stream:    2.05sec
+  Both fmOpenWrite and fmOpenReadWrite can be used to append a file except that fmOpenWrite won't allow reading the file.
+  One should remember to set the file position to the end of file prior writing it. Otherwise it will replace the existing data.
 
-     3.1sec only to read a 90MB file line by line (no other processing)
-     ______________________________________
-     Input file: input2_700MB.txt
-     Content: "WP_000000006.1" "NZ_AFCM01000246.1"
-     (PS: multiply time with 10)
-     Tester: c:\MyProjects\Project Testers\IO ccStreamBuff.pas tester\
+  So use:
+    TCubicBuffStream.Create(FileName, fmOpenRead)                  -> to read
+    TCubicBuffStream.Create(FileName, fmOpenWrite OR fmCreate)     -> to write to existing or create new file if none exists
+  or use:
+    constructor CreateRead (FileName);                             -> to read
+    constructor CreateWrite(FileName);                             -> to write to existing or create new file if none exists
 
-     Lines: 19 millions
-     Compiler optmization: ON
-     I/O check: On
-     FastMM: release
-     ______________________________________
-     Reading: linear (ReadLine) (19 millions reads)
-      HDD Laptop                                    (PS: multiply time with 10)
-      We see clear performance drop at 8KB. Recommended 32KB
-        Time: 622 ms  Cache size: 128KB.
-        Time: 622 ms  Cache size: 64KB.
-        Time: 622 ms  Cache size: 32KB.
-        Time: 622 ms  Cache size: 24KB.
-        Time: 624 ms  Cache size: 256KB.
-        Time: 625 ms  Cache size: 18KB.
-        Time: 626 ms  Cache size: 1024KB.
-        Time: 626 ms  Cache size: 26KB.
-        Time: 626 ms  Cache size: 16KB.
-        Time: 628 ms  Cache size: 42KB.
-        Time: 644 ms  Cache size: 8KB.      <--- the speed drops suddenly for 8K buffers (and lower)
-        Time: 664 ms  Cache size: 4KB.
-        Time: 705 ms  Cache size: 2KB.
-        Time: 791 ms  Cache size: 1KB.
-        Time: 795 ms  Cache size: 1KB.
-     ______________________________________
-      SSD Laptop
-      We see a small improvement as we go towards higher buffers. Recommended 16 or 32KB
-        Time: 610 ms  Cache size: 128KB.
-        Time: 611 ms  Cache size: 256KB.
-        Time: 614 ms  Cache size: 32KB.
-        Time: 623 ms  Cache size: 16KB.
-        Time: 625 ms  Cache size: 66KB.
-        Time: 639 ms  Cache size: 8KB.       <--- definitivelly not good with < 8K
-        Time: 660 ms  Cache size: 4KB.
-
-
-
-     ______________________________________
-     Reading: Random (ReadInteger) (100000 reads)
-      SSD Laptop
-       Time: 064 ms. Cache size: 1KB.   Count: 100000.  RAM: 13.27 MB         <-- probably the best buffer size for ReadInteger is 4bytes!
-       Time: 067 ms. Cache size: 2KB.   Count: 100000.  RAM: 13.27 MB
-       Time: 080 ms. Cache size: 4KB.   Count: 100000.  RAM: 13.27 MB
-       Time: 098 ms. Cache size: 8KB.   Count: 100000.  RAM: 13.27 MB
-       Time: 140 ms. Cache size: 16KB.  Count: 100000.  RAM: 13.27 MB
-       Time: 213 ms. Cache size: 32KB.  Count: 100000.  RAM: 13.27 MB
-       Time: 360 ms. Cache size: 64KB.  Count: 100000.  RAM: 13.27 MB
-
-       Conclusion: This library is NOT the perfect solution for random reading.
-     ______________________________________
-
-
-    Update 2021:
-      When reading character by character, the new System.Classes.TBufferedFileStream seems to be 70% faster (Test done under Sydney).
-
------------------------------------------------------------------------------------------------------------------------}
+  Tester:
+    CubicCommonControls\Demo\cc StreamBuff\
+==================================================================================================}
 
 INTERFACE
 
 USES
-   System.Types, System.SysUtils, System.AnsiStrings, System.Classes, system.Math, Winapi.Windows;
-
+   Winapi.Windows, System.Types, System.SysUtils, System.Classes;
 
 TYPE
-  TBaseCachedFileStream = class(TStream)
-  private
-    function QueryInterface(const IID: TGUID; out Obj): HResult; stdcall;
-    function _AddRef: Integer; stdcall;
-    function _Release: Integer; stdcall;
-  protected
-    FHandle     : THandle;
-    FOwnsHandle : Boolean;
-    FCache      : PByte;
-    FCacheSize  : Integer;
-    FPosition   : Int64;                                                        // the current position in the file (relative to the beginning of the file)
-    FCacheStart : Int64;                                                        // the postion in the file of the start of the cache (relative to the beginning of the file)
-    FCacheEnd   : Int64;                                                        // the postion in the file of the end of the cache (relative to the beginning of the file)
-    FFileName   : string;
-    FLastError  : DWORD;
-    procedure HandleError(const Msg: string);
-    procedure RaiseSystemError(const Msg: string; LastError: DWORD); overload;
-    procedure RaiseSystemError(const Msg: string); overload;
-    procedure RaiseSystemErrorFmt(const Msg: string; const Args: array of const);
-    function  CreateHandle(FlagsAndAttributes: DWORD): THandle; virtual; abstract;
-    function  GetFileSize: Int64; virtual;
-    procedure SetSize  (NewSize: Longint); override;
-    procedure SetSize  (const NewSize: Int64); override;
-    function  FileRead (var Buffer; Count: Longword): Integer;
-    function  FileWrite(const Buffer; Count: Longword): Integer;
-    function  FileSeek (const Offset: Int64; Origin: TSeekOrigin): Int64;
-  public
-    MagicNo: AnsiString;
-    constructor Create(const FileName: string); overload;
-    constructor Create(const FileName: string; CacheSize: Integer); overload;
-    constructor Create(const FileName: string; CacheSize: Integer; Handle: THandle); overload; virtual;
-    destructor Destroy; override;
-    property CacheSize: Integer read FCacheSize;
-    function Read  (var Buffer; Count: Longint): Longint; override;
-    function Write (const Buffer; Count: Longint): Longint; override;
-    function Seek  (const Offset: Int64; Origin: TSeekOrigin): Int64; override;
-  end;
+  TCubicBuffStream= class(System.Classes.TBufferedFileStream)
+    private
+    public
+     MagicNo: AnsiString; // Obsolete!
 
+     { Strings }
+     procedure WriteStringU     (CONST s: string);
+     procedure WriteStringA     (CONST s: AnsiString);
+     procedure WriteStringUNoLen(CONST s: string);
+     procedure WriteStringANoLen(CONST s: AnsiString);                       { Write the string but don't write its length }
+     procedure WriteChars       (CONST s: AnsiString);
+     procedure WriteStrings     (TSL: TStrings);
+     procedure WriteEnter;
 
-  IDisableStreamReadCache = interface ['{0B6D0004-88D1-42D5-BC0F-447911C0FC21}']
-    procedure DisableStreamReadCache;
-    procedure EnableStreamReadCache;
-  end;
+     function  ReadStringAR     (CONST Len: integer): AnsiString;            { This is the relaxed version. It won't raise an error if there is not enough data (Len) to read }
+     function  ReadStringA      (CONST Len: integer): AnsiString; overload;  { It will raise an error if there is not enough data (Len) to read }
+     function  ReadStringA: AnsiString;                           overload;  { It automatically detects the length of the string }
+     function  ReadEnter: Boolean;
+     function  ReadChars  (Count: Longint): AnsiString;
+     procedure ReadStrings(TSL: TStrings);
+     function  ReadStringU: string;
+     { Reverse read }
+     function  RevReadLongword: Cardinal;                                    { REVERSE READ - read 4 bytes and swap their position. For Motorola format. }
+     function  RevReadLongInt : Longint;
+     function  RevReadWord    : Word;                                        { REVERSE READ - read 2 bytes and swap their position. For Motorola format. }
+     function  RevReadInt     : Cardinal;                                    { REVERSE READ - read 4 bytes and swap their position - reads a UInt4 }
+     {}
+     function  ReadUInt64  : UInt64;
+     function  ReadInteger : Longint;
+     function  ReadInt64   : Int64;
+     function  ReadCardinal: Cardinal;
+     function  ReadBoolean : Boolean;
+     function  ReadByte    : Byte;
+     function  ReadWord    : Word;
+     function  ReadDate    : TDateTime;
+     function  ReadStringUNoLen (CONST Len: Integer): string;
+     function  ReadSmallInt: Smallint;
+     function  ReadShortInt: ShortInt;
+     function  ReadBytes: TByteDynArray;
+     function  ReadSingle: Single;
 
+     {}
+     procedure WriteUInt64   (const i: UInt64);
+     procedure WriteInt64    (const i: Int64);
+     procedure WriteInteger  (CONST i: Longint);
+     procedure WriteBoolean  (CONST b: bool);
+     procedure WriteCardinal (CONST c: Cardinal);
+     procedure WriteDate     (CONST d: TDateTime);
+     procedure WriteByte     (CONST b: Byte);
+     procedure WriteWord     (CONST w: Word);
+     procedure WriteSmallInt (const s: SmallInt);
+     procedure WriteShortInt (const s: ShortInt);
+     procedure WriteBytes    (const Buffer: TByteDynArray);
+     procedure WriteSingle   (const Sngl: Single);
 
-(* This class works by filling the cache each time a call to Read is made and
-     FPosition is outside the existing cache.  By filling the cache we mean reading from the file into the temporary cache.  Calls to Read when
-     FPosition is in the existing cache are then dealt with by filling the buffer with bytes from the cache.                                        *)
- TReadCachedStream = class(TBaseCachedFileStream, IDisableStreamReadCache)
-  private
-    Buff: AnsiString;
-    BuffPos: Integer;
-    FUseAlignedCache: Boolean;
-    FViewStart: Int64;
-    FViewLength: Int64;
-    FDisableStreamReadCacheRefCount: Integer;
-    procedure disableStreamReadCache;
-    procedure enableStreamReadCache;
-    procedure flushCache;
-    procedure fillBuffer;
-  protected
-    function  CreateHandle(FlagsAndAttributes: DWORD): THandle; override;
-    function  GetFileSize: Int64; override;
-  public
-    EOF: Boolean;                                                                     { True when all lines have been read (end of file). Use it with ReadLine. }
-    LineOffset: Int64;                                                                { Offset of the current entry (line) in file. Used by Fasta Sorter to retrieve sequence start }
-    LastAddress: Int64;                                                               { Address from where I currently read in file. Needs to be public because it used to show progress in TCubeEx.SplitMultiplex }
-    MaxLineLength: integer;                                                           { Maximum line length. If a text file contains lines longer than this value, the program will crash.   }
-    constructor Create(const FileName: string; CacheSize: Integer; Handle: THandle); overload; override;
-    property  UseAlignedCache: Boolean read FUseAlignedCache write FUseAlignedCache;
-    function  Read(var Buffer; Count: Longint): Longint; override;
-    procedure SetViewWindow(const ViewStart, ViewLength: Int64);
+     { Header OLD }
+     function  ReadMagicVer: Word;
+     function  ReadMagicNo(const MagicNo: AnsiString): Boolean;
+     procedure WriteMagicNo(const MagicNo: AnsiString);
+     procedure WriteMagicVer(const MVersion: Word);
 
-    function  ReadMagicVer: Word;
-    function  ReadMagicNo  (CONST MagicNo_: AnsiString): Boolean;                                   { Read a string from disk and compare it with MagicNo. Retursn TRUE if it matches }
+     { Header NEW }
+     function  ReadHeader (CONST Signature: AnsiString): Word;                   overload;
+     function  ReadHeader (CONST Signature: AnsiString; Version: Word): Boolean; overload;
+     procedure WriteHeader(CONST Signature: AnsiString; Version: Word);
 
-    function  ReadSingle: Single;
-    function  ReadDate: TDateTime;
-    function  ReadEnter: Word;
-    function  ReadInteger: Integer;
-    function  ReadByte: Byte;
-    function  ReadShortInt: ShortInt;
-    function  ReadSmallInt: SmallInt;
-    function  ReadBoolean: Boolean;
-    function  ReadCardinal: Cardinal;
-    function  ReadWordSwap: Word;
-    function  ReadWord: Word;
-    function  ReadStringA(CONST Lungime: integer): AnsiString; overload;                           { You need to specify the length of the string }
-    function  ReadStringA: AnsiString;                         overload;                           { It automatically detects the length of the string }
-    function  ReadStringU: string;
-    procedure ReadStrings(TSL: TStrings);                                              { Works for both Delphi7 and Delphi UNICODE }
-    function  ReadChars(Count: Longint): AnsiString;
-    procedure ReadPadding(CONST Bytes: Integer= 1024);
-    function  ReadBytes: TByteDynArray;
+     function  ReadCheckPoint: Boolean;
+     procedure WriteCheckPoint;
 
-    procedure FirstLine;    { Go to first line. I need to use it after CountLines }
-    function  CountLines: Int64;
-    function  ReadLine: AnsiString;
-    function  ReadEachLine: AnsiString;
-    function  ReadLines(StopChar: AnsiChar): AnsiString;      { Read lines until 'StopChar' is encountered }
-    function  CountAppearance(C: AnsiChar): Int64;
-    procedure GoToOffset(Offset: Int64);   { Flush buffer, move to the specified offset. The next ReadLine will fill the buffer with data from that position }
-  end;
+     procedure ReadPadding  (CONST Bytes: Integer);
+     procedure WritePadding (CONST Bytes: Integer= 1024);
 
+     { BT }
+     function  AsString: AnsiString;
+     procedure PushData(CONST Data: AnsiString);                                             { Put binary data (or text) into the stream }
+     function  CountAppearance(C: AnsiChar): Int64;
 
-{ This class works by caching calls to Write.  By this we mean temporarily storing the bytes to be written in the cache.  As each call to Write is processed the cache grows.  The cache is written to file when:
-       1.  A call to Write is made when the cache is full.
-       2.  A call to Write is made and FPosition is outside the cache (this must be as a result of a call to Seek).
-       3.  The class is destroyed.
-   Note that data can be read from these streams but the reading is not cached and in fact a read operation will flush the cache before attempting to read the data.                                             }
-  TWriteCachedStream = class(TBaseCachedFileStream, IDisableStreamReadCache)
-  private
-    FFileSize: Int64;
-    FReadStream: TReadCachedStream;
-    FReadStreamCacheSize: Integer;
-    FReadStreamUseAlignedCache: Boolean;
-    procedure DisableStreamReadCache;
-    procedure EnableStreamReadCache;
-    procedure CreateReadStream;
-    procedure FlushCache;
-  protected
-    function CreateHandle(FlagsAndAttributes: DWORD): THandle; override;
-    function GetFileSize: Int64; override;
-  public
-    constructor Create(const FileName: string; CacheSize, ReadStreamCacheSize: Integer; ReadStreamUseAlignedCache: Boolean); overload;
-    destructor Destroy; override;
-    function  Read         (VAR   Buffer; Count: Longint): Longint; override;
-    function  Write        (CONST Buffer; Count: Longint): Longint; override;
-
-    procedure WriteMagicVer(const MVersion: Word);
-    procedure WriteMagicNo (CONST MagicNo_: AnsiString);
-    { BINARY WRITING }                                                               { All these functions are mine }
-    procedure WriteSingle  (CONST Sngl: Single);
-    procedure WriteBytes   (CONST Buffer: TByteDynArray);
-    procedure WriteByte    (CONST b: Byte);
-    procedure WriteShortInt(CONST s: ShortInt);     //Signed 8bit: -128..127
-    procedure WriteSmallInt(const s: SmallInt);
-    procedure WriteEnter;
-    procedure WriteDate    (CONST aDate: TDateTime);
-    procedure WriteBoolean (CONST b: bool);
-    procedure WriteStringA (CONST s: AnsiString);
-    procedure WriteStringU (const s: String);
-    procedure WriteStrings (TSL: TStrings);                                              { Works for both Delphi7 and Delphi UNICODE }
-    procedure WriteChars   (CONST s: AnsiString);                                        { Writes a bunch of chars from the file. Why 'chars' and not 'string'? This function writes C++ strings (the length of the string was not written to disk also) and not real Delphi strings. }
-    procedure WriteCardinal(CONST c: Cardinal);
-    procedure WriteInteger (CONST i: Integer);
-    procedure WriteWord    (CONST w: Word);
-    procedure WritePadding (CONST Bytes: Integer= 1024);
-    { TEXT WRITING }
-    procedure WriteText    (CONST s: AnsiString); { Writes the specified string as plain text (without its length as binary number in front of it) }
-    procedure WriteTextLn  (s: AnsiString); { Same as xx but it automatically adds an enter after each text }
+     constructor CreateRead (CONST FileName: string);
+     constructor CreateWrite(CONST FileName: string);
   end;
 
 
 
-function SetFilePointerEx(hFile: THandle; DistanceToMove: Int64; lpNewFilePointer: PInt64; dwMoveMethod: DWORD): BOOL; stdcall; external 'kernel32.dll';
-
+{ Read the first Count characters from a file }
+function StringFromFileStart (CONST FileName: string; Count: Cardinal): AnsiString;
 
 
 IMPLEMENTATION
-
-
-
 USES
-  ccBinary, ccCore;
+   ccCore, ccINIFile, ccBinary;
 
-CONST
-  DefaultCacheSize = 32*KB;     { Author: 16kb - this was chosen empirically but it seems to be the best value - don't make it too large otherwise the progress report is 'jerky' }
-  DefMaxLineLength =  2*MB;     { Maximum line length. If a text file contains lines longer than this value, the program will crash.  }
 
-{ MaxLineLength   Best speed
-      16KB          47ms
-      32KB          47ms
-      96KB          46ms
-     128KB          47ms
-     256KB          47ms
-     512KB          47ms
-    1024KB          47ms
-    2048KB          49ms
-------------------------------------}
+{--------------------------------------------------------------------------------------------------
+   MAGIC NO
+   Obsolete. Still used in Bionix. Use ReadMagicVer instead.
+--------------------------------------------------------------------------------------------------}
 
-
-
-
-
-
-
-
-{ TBaseCachedFileStream }
-
-constructor TBaseCachedFileStream.Create(const FileName: string);
-begin
- Create(FileName, 0);
-end;
-
-
-constructor TBaseCachedFileStream.Create(const FileName: string; CacheSize: Integer);
-begin
- Create(FileName, CacheSize, 0);
-end;
-
-
-constructor TBaseCachedFileStream.Create(const FileName: string; CacheSize: Integer; Handle: THandle);
-begin
- inherited Create;
- FFileName := FileName;
- FOwnsHandle := Handle=0;
-
- if FOwnsHandle
- then FHandle := CreateHandle(FILE_ATTRIBUTE_NORMAL)
- else FHandle := Handle;
-
- FCacheSize := CacheSize;
- if FCacheSize<= 0
- then FCacheSize := DefaultCacheSize;
- GetMem(FCache, FCacheSize);
-end;
-
-
-destructor TBaseCachedFileStream.Destroy;
-begin
- FreeMem(FCache);
-
- if FOwnsHandle and (FHandle<>0)
- then
-   {debug: if NOT CloseHandle(FHandle) then MessageBox_replace_with_Mesaj(0, PChar('cannot close file'), '', 0);   }
-   CloseHandle(FHandle);
-
- inherited Destroy;
-end;
-
-
-function TBaseCachedFileStream.QueryInterface(const IID: TGUID; out Obj): HResult;
-begin
- if GetInterface(IID, Obj)
- then Result := S_OK
- else Result := E_NOINTERFACE;
-end;
-
-
-function TBaseCachedFileStream._AddRef: Integer;
-begin
- Result := -1;
-end;
-
-
-function TBaseCachedFileStream._Release: Integer;
-begin
- Result := -1;
-end;
-
-
-procedure TBaseCachedFileStream.HandleError(const Msg: string);
-begin
- if FLastError<>0
- then RaiseSystemError(Msg, FLastError);
-end;
-
-
-procedure TBaseCachedFileStream.RaiseSystemError(const Msg: string; LastError: DWORD);
-begin
-  RAISE EStreamError.Create(Trim(Msg)+ #13#10+ SysErrorMessage(LastError));
-end;
-
-
-procedure TBaseCachedFileStream.RaiseSystemError(const Msg: string);
-begin
- RaiseSystemError(Msg, GetLastError);
-end;
-
-
-procedure TBaseCachedFileStream.RaiseSystemErrorFmt(const Msg: string; const Args: array of const);
-var
-  LastError: DWORD;
-begin
-  LastError := GetLastError; // must call GetLastError before Format
-  RaiseSystemError(Format(Msg, Args), LastError);
-end;
-
-
-function TBaseCachedFileStream.GetFileSize: Int64;
-begin
- if NOT GetFileSizeEx(FHandle, Result)
- then RaiseSystemErrorFmt('GetFileSizeEx failed for %s.', [FFileName]);
-end;
-
-
-procedure TBaseCachedFileStream.SetSize(NewSize: Longint);
-begin
- SetSize(Int64(NewSize));
-end;
-
-
-procedure TBaseCachedFileStream.SetSize(const NewSize: Int64);
-begin
- Seek(NewSize, soBeginning);
- if NOT WinApi.Windows.SetEndOfFile(FHandle)
- then RaiseSystemErrorFmt('SetEndOfFile for %s.', [FFileName]);
-end;
-
-
-function TBaseCachedFileStream.FileRead(var Buffer; Count: Longword): Integer;
-begin
- if WinApi.Windows.ReadFile(FHandle, Buffer, Count, LongWord(Result), nil)
- then FLastError := 0
- else
-  begin
-   FLastError := GetLastError;
-   Result := -1;
-  end;
-end;
-
-
-function TBaseCachedFileStream.FileWrite(const Buffer; Count: Longword): Integer;
-begin
- if WinApi.Windows.WriteFile(FHandle, Buffer, Count, LongWord(Result), nil)
- then FLastError := 0
- else
-  begin
-   FLastError := GetLastError;
-   Result := -1;
-  end;
-end;
-
-
-function TBaseCachedFileStream.FileSeek(const Offset: Int64; Origin: TSeekOrigin): Int64;
-begin
- if NOT SetFilePointerEx(FHandle, Offset, @Result, ord(Origin))
- then RaiseSystemErrorFmt('SetFilePointerEx failed for %s.', [FFileName]);
-end;
-
-
-function TBaseCachedFileStream.Read(var Buffer; Count: Integer): Longint;
-begin
- RAISE EAssertionFailed.Create('Cannot read from this stream');
-end;
-
-
-function TBaseCachedFileStream.Write(const Buffer; Count: Integer): Longint;
-begin
- RAISE EAssertionFailed.Create('Cannot write to this stream');
-end;
-
-
-function TBaseCachedFileStream.Seek(const Offset: Int64; Origin: TSeekOrigin): Int64;
-//Set FPosition to the value specified - if this has implications for the cache then overriden Write and Read methods must deal with those.
-begin
- case Origin of
-  soBeginning: FPosition := Offset;
-  soEnd      : FPosition := GetFileSize+Offset;
-  soCurrent  : inc(FPosition, Offset);
- end;
- Result := FPosition;
-end;
-
-
-
-
-
-
-
-
-
-
-
-
-{==================================================================================================
-   TReadCachedStream
-==================================================================================================}
-
-constructor TReadCachedStream.Create(const FileName: string; CacheSize: Integer; Handle: THandle);
-begin
-  inherited;
-  Buff             := '';      { Used by ReadLine }
-  BuffPos          := 0;
-  LastAddress      := 0;
-  EOF              := FALSE;
-  MaxLineLength    := DefMaxLineLength;   { Maximum line length. If a text file contains lines longer than this value, the program will crash.  }
-  SetViewWindow(0, inherited GetFileSize);
-end;
-
-
-function TReadCachedStream.CreateHandle(FlagsAndAttributes: DWORD): THandle;
-begin
-  Result := WinApi.Windows.CreateFile( PChar(FFileName), GENERIC_READ, FILE_SHARE_READ, NIL, OPEN_EXISTING, FlagsAndAttributes, 0);
-  if Result=INVALID_HANDLE_VALUE
-  then RaiseSystemErrorFmt('Cannot open %s.', [FFileName]);
-end;
-
-
-procedure TReadCachedStream.DisableStreamReadCache;
-begin
-  inc(FDisableStreamReadCacheRefCount);
-end;
-
-
-procedure TReadCachedStream.EnableStreamReadCache;
-begin
-  dec(FDisableStreamReadCacheRefCount);
-end;
-
-
-procedure TReadCachedStream.FlushCache;
-begin
-  FCacheStart := 0;
-  FCacheEnd  := 0;
-
-  {For ReadLine}
-  Buff       := '';
-  BuffPos    := 0;
-  LastAddress:= 0;
-  EOF:= FALSE;
-end;
-
-
-function TReadCachedStream.GetFileSize: Int64;
-begin
-  Result := FViewLength;
-end;
-
-
-procedure TReadCachedStream.SetViewWindow(const ViewStart, ViewLength: Int64);
-begin
-  if ViewStart<0
-  then raise EAssertionFailed.Create('Invalid view window');
-
-  if (ViewStart+ViewLength) > inherited GetFileSize
-  then raise EAssertionFailed.Create('Invalid view window');
-
-  FViewStart := ViewStart;
-  FViewLength := ViewLength;
-  FPosition := 0;
-  FCacheStart := 0;
-  FCacheEnd := 0;
-end;
-
-
-
-
-
-
-
-
-
-
-
-
-function TReadCachedStream.Read(var Buffer; Count: Longint): Longint;
-VAR
-   NumOfBytesToCopy, NumOfBytesLeft, NumOfBytesRead: Longint;
-   CachePtr, BufferPtr: PByte;
-begin
-  if FDisableStreamReadCacheRefCount > 0
-  then
-   begin
-    FileSeek(FPosition+FViewStart, soBeginning);
-    Result := FileRead(Buffer, Count);
-    if Result=-1
-    then Result := 0;         //contract is to return number of bytes that were read
-    inc(FPosition, Result);
-   end
-  else
-   begin
-    Result := 0;
-    NumOfBytesLeft := Count;
-    BufferPtr := @Buffer;
-    WHILE NumOfBytesLeft>0 DO
-     begin
-      if (FPosition<FCacheStart) or (FPosition>=FCacheEnd) then
-       begin
-        //the current position is not available in the cache so we need to re-fill the cache
-        FCacheStart := FPosition;
-        if UseAlignedCache
-        then FCacheStart := FCacheStart - (FCacheStart mod CacheSize);
-        FileSeek(FCacheStart+FViewStart, soBeginning);
-        NumOfBytesRead := FileRead(FCache^, CacheSize);
-        if NumOfBytesRead=-1 then EXIT;
-        Assert(NumOfBytesRead>=0);
-        FCacheEnd := FCacheStart+NumOfBytesRead;
-        if NumOfBytesRead=0 then
-         begin
-          FLastError := ERROR_HANDLE_EOF;//must be at the end of the file
-          break;
-         end;
-       end;
-
-      //read from cache to Buffer
-      NumOfBytesToCopy := Min(FCacheEnd-FPosition, NumOfBytesLeft);
-      CachePtr := FCache;
-      inc(CachePtr, FPosition-FCacheStart);
-      Move(CachePtr^, BufferPtr^, NumOfBytesToCopy);    //ok
-      inc(Result, NumOfBytesToCopy);
-      inc(FPosition, NumOfBytesToCopy);
-      inc(BufferPtr, NumOfBytesToCopy);
-      dec(NumOfBytesLeft, NumOfBytesToCopy);
-    end;
-  end;
-end;
-
-
-
-
-
-
-
-
-
-
-
-
-{==================================================================================================
-   TWriteCachedStream
-==================================================================================================}
-
-constructor TWriteCachedStream.Create(const FileName: string; CacheSize, ReadStreamCacheSize: Integer; ReadStreamUseAlignedCache: Boolean);
-begin
-  inherited Create(FileName, CacheSize);
-
-  FFileSize                  := 0; // No need to initialize as fields of a class are automatically initialized.
-  FReadStreamCacheSize       := ReadStreamCacheSize;
-  FReadStreamUseAlignedCache := ReadStreamUseAlignedCache;
-end;
-
-
-destructor TWriteCachedStream.Destroy;
-begin
-  FlushCache;                                                                                      { make sure that the final calls to Write get recorded in the file }
-  FreeAndNil(FReadStream);
-  inherited Destroy;
-end;
-
-
-
-function TWriteCachedStream.CreateHandle(FlagsAndAttributes: DWORD): THandle;
-begin
- Result := WinApi.Windows.CreateFile(PChar(FFileName), GENERIC_READ or GENERIC_WRITE, 0, nil,
-   CREATE_ALWAYS,   // if it exists, the file is deleted and recreated.       In OPEN_ALWAYS mode the file will be opened. Nu e bine asa.
-   FlagsAndAttributes, 0);
-
- if Result=INVALID_HANDLE_VALUE
- then RaiseSystemErrorFmt('Cannot create %s.', [FFileName]);
-end;
-
-
-procedure TWriteCachedStream.DisableStreamReadCache;
-begin
-  CreateReadStream;
-  FReadStream.DisableStreamReadCache;
-end;
-
-
-procedure TWriteCachedStream.EnableStreamReadCache;
-begin
-  Assert(Assigned(FReadStream));
-  FReadStream.EnableStreamReadCache;
-end;
-
-
-function TWriteCachedStream.GetFileSize: Int64;
-begin
-  Result := FFileSize;
-end;
-
-
-procedure TWriteCachedStream.CreateReadStream;
-begin
-  if not Assigned(FReadStream) then
-  begin
-    FReadStream := TReadCachedStream.Create(FFileName, FReadStreamCacheSize, FHandle);
-    FReadStream.UseAlignedCache := FReadStreamUseAlignedCache;
-  end;
-end;
-
-
-procedure TWriteCachedStream.FlushCache;
-var
-  NumOfBytesToWrite: Longint;
-begin
-  if Assigned(FCache) then
-  begin
-    NumOfBytesToWrite := FCacheEnd-FCacheStart;
-    if NumOfBytesToWrite>0 then
-     begin
-      FileSeek(FCacheStart, soBeginning);
-      if FileWrite(FCache^, NumOfBytesToWrite)<>NumOfBytesToWrite
-      then RaiseSystemErrorFmt('FileWrite failed for %s.', [FFileName]);
-
-      if Assigned(FReadStream)
-      then FReadStream.FlushCache;
-     end;
-    FCacheStart := FPosition;
-    FCacheEnd := FPosition;
-  end;
-end;
-
-
-function TWriteCachedStream.Read(var Buffer; Count: Integer): Longint;
-begin
-  FlushCache;
-  CreateReadStream;
-  Assert(FReadStream.FViewStart=0);
-  if FReadStream.FViewLength<>FFileSize
-  then FReadStream.SetViewWindow(0, FFileSize);
-  FReadStream.Position := FPosition;
-  Result := FReadStream.Read(Buffer, Count);
-  inc(FPosition, Result);
-end;
-
-
-function TWriteCachedStream.Write(CONST Buffer; Count: Longint): Longint;
-var
-  NumOfBytesToCopy, NumOfBytesLeft: Longint;
-  CachePtr, BufferPtr: PByte;
-begin
-  Result := 0;
-  BufferPtr := @Buffer;
-
-  NumOfBytesLeft := Count;
-  while NumOfBytesLeft> 0 do
-   begin
-     if ((FPosition<FCacheStart) or (FPosition>FCacheEnd))                      // the current position is outside the cache
-     OR (FPosition-FCacheStart=FCacheSize)                                      // the cache is full
-     then
-      begin
-       FlushCache;
-       Assert(FCacheStart=FPosition);
-      end;
-
-     //write from Buffer to the cache
-     NumOfBytesToCopy := Min(FCacheSize-(FPosition-FCacheStart), NumOfBytesLeft);
-     CachePtr := FCache;
-     inc(CachePtr, FPosition-FCacheStart);
-
-     Move(BufferPtr^, CachePtr^, NumOfBytesToCopy);  //Source, Dest, Count
-
-     inc(Result, NumOfBytesToCopy);
-     inc(FPosition, NumOfBytesToCopy);
-     FCacheEnd := Max(FCacheEnd, FPosition);
-     inc(BufferPtr, NumOfBytesToCopy);
-     dec(NumOfBytesLeft, NumOfBytesToCopy);
-   end;
-  FFileSize := Max(FFileSize, FPosition);
-end;
-
-
-
-
-
-
-
-
-
-
-
-{----------------------------------------------------------------------------------------------------------------------}
-
-
-
-
-
-
-
-
-{ MAGIC NUMBER - Obsolete }
-
-function TReadCachedStream.ReadMagicNo(CONST MagicNo_: AnsiString): Boolean;                          { Read a string from disk and compare it with MagicNo. Retursn TRUE if it matches }
+{ Read a string from file and compare it with MagicNo.
+  Return TRUE if it matches (it means we read the correct file format). }
+function TCubicBuffStream.ReadMagicNo(CONST MagicNo: AnsiString): Boolean;
 VAR s: AnsiString;
 begin
- s:= ReadStringA(Length(MagicNo_));
- Result:= s = MagicNo_;
+ s:= ReadStringA(Length(MagicNo));
+ Result:= MagicNo = s;
 end;
 
-procedure TWriteCachedStream.WriteMagicNo(CONST MagicNo_: AnsiString);
+
+procedure TCubicBuffStream.WriteMagicNo(CONST MagicNo: AnsiString);
 begin
- Assert(MagicNo_ > '', 'Magic number is empty!');
- Write(MagicNo_[1], Length(MagicNo_));
+ Assert(MagicNo > '', 'Magic number is empty!');
+ Write(MagicNo[1], Length(MagicNo));
 end;
-
-
-
 
 
 
@@ -791,7 +158,7 @@ end;
   Read the first x chars in a file and compares it with MagicNo.
   If matches then reads another reads the FileVersion word.
   Returns the FileVersion. If magicno fails, it returns zero }
-function TReadCachedStream.ReadMagicVer: Word;
+function TCubicBuffStream.ReadMagicVer: Word;
 VAR s: AnsiString;
 begin
  Assert(MagicNo > '', 'MagicNo is empty!');
@@ -803,126 +170,193 @@ begin
 end;
 
 
-procedure TWriteCachedStream.WriteMagicVer(CONST MVersion: Word);
+procedure TCubicBuffStream.WriteMagicVer(CONST MVersion: Word);
 begin
  Assert(MagicNo > '', 'Magic number is empty!');
  if MVersion= 0
- then RAISE exception.Create('MagicVersion must be higher than 0!');
+ then RAISE Exception.Create('MagicVersion must be higher than 0!');
 
- Write(MagicNo[1], Length(MagicNo));
+ WriteBuffer(MagicNo[1], Length(MagicNo));
  WriteWord(MVersion);
 end;
 
 
 
 
-
-
-
-{ CHARS }
-procedure TWriteCachedStream.WriteChars(CONST s: AnsiString);                                    { Writes a bunch of chars from the file. Why 'chars' and not 'string'? This function writes C++ strings (the length of the string was not written to disk also) and not real Delphi strings. }
+constructor TCubicBuffStream.CreateRead(CONST FileName: string);
 begin
- Assert(Length(s) > 0);
- Write(s[1], Length(s));
+ inherited Create(FileName, fmOpenRead);
 end;
 
 
-function TReadCachedStream.ReadChars(Count: Longint): AnsiString;                              { Reads a bunch of chars from the file. Fedra. Why 'ReadChars' and not 'ReadString'? This function reads C++ strings (the length of the string was not written to disk also) and not real Delphi strings. So, i have to give the number of chars to read as parameter. IMPORTANT: The function will reserve memory for s. }
+constructor TCubicBuffStream.CreateWrite(CONST FileName: string);
 begin
- if Count= 0 then RAISE exception.Create('Count is zero!');                                      { It gives a range check error if you try s[1] on an empty string so we added 'Count = 0' as protection. }
- SetLength(Result, Count);
- Read(Result[1], Count);
-{ Alternative:  Result:= Read(Pointer(s)^, Count)= Count;     <--- Don't use this! Ever. See explanation from A Buchez:   http://stackoverflow.com/questions/6411246/pointers-versus-s1 }
+ inherited Create(FileName, fmOpenWrite OR fmCreate);
 end;
 
 
 
 
 
-{ STRING ANSI }
-procedure TWriteCachedStream.WriteText(CONST s: AnsiString); { Writes the specified string as plain text (without its length as binary number in front of it) }
+
+
+
+
+
+
+
+{ Reads file signature and version number. Returns True if found correct data.
+  Read the first x chars in a file and compares it with MagicNo.
+  If matches then reads another reads the FileVersion word.
+  Returns the FileVersion. If magicno fails, it returns zero }
+function TCubicBuffStream.ReadHeader(CONST Signature: AnsiString; Version: Word): Boolean;
+VAR s: AnsiString;
 begin
- if s > ''
- then Write(s[1], Length(s));
+ Assert(Signature > '', 'Signature is empty!');
+ Assert(Version   > 0 , 'Version must be > 0');
+
+ s:= ReadStringA;
+ Result:= s = Signature;
+ if Result
+ then Result:= ReadWord = Version;
 end;
 
-procedure TWriteCachedStream.WriteTextLn(s: AnsiString); { Same as xx but it automatically adds an enter after each text }
+
+{ Reads file signature and version number.
+  Returns version number or 0 on fail.
+  Useful when we have multiple file versions }
+function TCubicBuffStream.ReadHeader(CONST Signature: AnsiString): Word;
+VAR s: AnsiString;
 begin
- s:= s+ CRLF;
- Write(s[1], Length(s));
+ Assert(Signature > '', 'Signature is empty!');
+
+ s:= ReadStringA;
+ if s = Signature
+ then Result:= ReadWord
+ else Result:= 0;
 end;
 
 
-procedure TWriteCachedStream.WriteStringA(CONST s: AnsiString);
-VAR Lungime: Cardinal;
+procedure TCubicBuffStream.WriteHeader(CONST Signature: AnsiString; Version: Word);
 begin
- Lungime:= Length(s);
- Write(Lungime, 4);
- if Lungime > 0                                                                                    { This makes sure 's' is not empty. Else I will get a RangeCheckError at runtime }
- then Write(s[1], Lungime);
+ Assert(Signature > '', 'Signature is empty!');
+ Assert(Version> 0, 'Version must be higher than 0!');
+
+ WriteStringA(Signature);
+ WriteWord(Version);
 end;
 
 
-function TReadCachedStream.ReadStringA(CONST Lungime: integer): AnsiString;                         { You need to specify the length of the string }
+
+{--------------------------------------------------------------------------------------------------
+   PADDING
+   It is important to read/write some padding bytes.
+   If you later (as your program evolves) need to save extra data into your file, you use the padding bytes. This way you don't need to change your file format.
+--------------------------------------------------------------------------------------------------}
+procedure TCubicBuffStream.WritePadding(CONST Bytes: Integer= 1024);
+VAR b: TBytes;
+begin
+ if Bytes> 0 then
+  begin
+   SetLength(b, Bytes);
+   FillChar (b[0], Bytes, #0);
+   WriteBuffer(b[0], Bytes);
+  end;
+end;
+
+
+procedure TCubicBuffStream.ReadPadding(CONST Bytes: Integer);
+VAR b: TBytes;
+begin
+ if Bytes> 0 then
+  begin
+   SetLength(b, Bytes);
+   ReadBuffer(b[0], Bytes);
+  end;
+end;
+
+
+
+
+
+
+
+{--------------------------------------------------------------------------------------------------
+   ASCII STRINGS
+--------------------------------------------------------------------------------------------------}
+function TCubicBuffStream.ReadStringA(CONST Len: integer): AnsiString; { You need to specify the length of the string }
 VAR TotalBytes: Integer;
 begin
- if Lungime> 0
+ if Len> 0
  then
   begin
-   SetLength(Result, Lungime);                                                                     { Initialize the result }
-   //FillChar(Result[1], Lungime, '?'); DEBUG ONLY!
-   TotalBytes:= Read(Result[1], Lungime);                                                          { Read is used in cases where the number of bytes to read from the stream is not necessarily fixed. It attempts to read up to Count bytes into buffer and returns the number of bytes actually read.  }
+   SetLength(Result, Len);                                              { Initialize the result }
+   //FillChar(Result[1], Len, '?'); DEBUG ONLY!
+   TotalBytes:= Read(Result[1], Len);                                   { Read is used in cases where the number of bytes to read from the stream is not necessarily fixed. It attempts to read up to Count bytes into buffer and returns the number of bytes actually read.  }
 
    if TotalBytes= 0
    then Result:= ''
    else
-     if TotalBytes < Lungime                                                                       { If there is not enough data to read... }
-     then SetLength(Result, TotalBytes);                                                           { ...set the buffer to whater I was able to read }
+     if TotalBytes < Len                                                { If there is not enough data to read... }
+     then SetLength(Result, TotalBytes);                                { ...set the buffer to whater I was able to read }
   end
  else Result:= '';
 end;
 
 
-function TReadCachedStream.ReadStringA: AnsiString;                                                 { It automatically detects the length of the string }
-VAR Lungime: Cardinal;
+{ It automatically detects the length of the string }           { Old name: ReadStringU }
+function TCubicBuffStream.ReadStringA: AnsiString;
+VAR Len: Cardinal;
 begin
- Read(Lungime, 4);
- Assert(Lungime<= Size- Position, 'TReadCachedStream: Invalid string size!');
- Result:= ReadStringA(Lungime);
+ ReadBuffer(Len, 4);                                                                         { First, find out how many characters to read }
+ Assert(Len<= Size- Position, 'TReadCachedStream: Invalid string size!');
+ Result:= ReadStringA(Len);
+end;
+
+
+procedure TCubicBuffStream.WriteStringA(CONST s: AnsiString);
+VAR Len: Cardinal;
+begin
+ Len:= Length(s);
+ WriteBuffer(Len, 4);
+ if Len > 0                                                                                  { This makes sure 's' is not empty (nothing to read). Else we will get a RangeCheckError at runtime }
+ then WriteBuffer(s[1], Len);
 end;
 
 
 
 
-{ STRING UNICODE }
-
-procedure TWriteCachedStream.WriteStringU(CONST s: String);
-VAR Lungime: Cardinal;
-    UTF: UTF8String;
+{--------------------------------------------------------------------------------------------------
+   UNICODE STRINGS
+--------------------------------------------------------------------------------------------------}
+procedure TCubicBuffStream.WriteStringU(CONST s: string);
+VAR
+  Len: cardinal;
+  UTF: UTF8String;
 begin
  UTF := UTF8String(s);
 
  { Write length }
- Lungime := Length(UTF);
- Write(Lungime, SizeOf(Lungime));
+ Len := Length(UTF);
+ WriteBuffer(Len, SizeOf(Len));
 
  { Write string }
- if Lungime > 0
- then Write(UTF[1], Lungime);
+ if Len > 0
+ then WriteBuffer(UTF[1], Len);
 end;
 
 
-function TReadCachedStream.ReadStringU: string;                                                         { Works for both Delphi7 and Delphi UNICODE }
+function TCubicBuffStream.ReadStringU: string;
 VAR
-   Lungime: Cardinal;
+   Len: Cardinal;
    UTF: UTF8String;
 begin
- Read(Lungime, 4);                                                                           { Read length }
- if Lungime > 0
+ ReadBuffer(Len, 4);                                                                         { Read length }
+ if Len > 0
  then
   begin
-   SetLength(UTF, Lungime);                                                                        { Read string }
-   Read(UTF[1], Lungime);
+   SetLength(UTF, Len);                                                                      { Read string }
+   ReadBuffer(UTF[1], Len);
    Result:= string(UTF);
   end
  else Result:= '';
@@ -932,181 +366,140 @@ end;
 
 
 
+{--------------------------------------------------------------------------------------------------
+   SPECIAL STRINGS
+--------------------------------------------------------------------------------------------------}
 
-procedure TWriteCachedStream.WriteStrings(TSL: TStrings);                                              { Works for both Delphi7 and Delphi UNICODE }
+{ TSL }
+procedure TCubicBuffStream.WriteStrings(TSL: TStrings);
 begin
- WriteStringU(TSL.Text)
+ WriteStringU(TSL.Text);
 end;
 
 
-procedure TReadCachedStream.ReadStrings(TSL: TStrings);                                              { Works for both Delphi7 and Delphi UNICODE }
+procedure TCubicBuffStream.ReadStrings(TSL: TStrings);
 begin
  TSL.Text:= ReadStringU;
 end;
 
 
 
-
-
-
-
-
-
-
-
-{ PADDING }
-
-procedure TReadCachedStream.ReadPadding(CONST Bytes: Integer);
-VAR b: TBytes;
+{ ENTER }
+function TCubicBuffStream.ReadEnter: Boolean;   { Returns TRUE if the byte read is LF }
+VAR Byte1, Byte2: Byte;
 begin
- if Bytes> 0 then
-  begin
-   SetLength(b, Bytes);
-   Read(b[0], Bytes);
-  end;
+ ReadBuffer(Byte1, 1);
+ ReadBuffer(Byte2, 1);
+ Result:= (Byte1= Byte(#13)) AND (Byte2= Byte(#10));
+end;
+
+
+procedure TCubicBuffStream.WriteEnter;
+VAR W: Word;
+begin
+ W:= $0D0A;
+ WriteBuffer(w, 2);
 end;
 
 
 
-procedure TWriteCachedStream.WritePadding(CONST Bytes: Integer= 1024);
-VAR b: TBytes;
+{--------------------------------------------------------------------------------------------------
+   CHARS
+--------------------------------------------------------------------------------------------------}
+
+{ Writes a bunch of chars from the file. Why 'chars' and not 'string'? This function writes C++ strings (the length of the string was not written to disk also) and not real Delphi strings. }
+procedure TCubicBuffStream.WriteChars(CONST s: AnsiString);
 begin
- if Bytes> 0 then
-  begin
-   SetLength(b, Bytes);
-   FillChar (b[0], Bytes, #0);
-   Write(b[0], Bytes);
-  end;
+ Assert(Length(s) > 0);
+ WriteBuffer(s[1], Length(s));
 end;
 
-
-
-{ SINGLE }
-
-function TReadCachedStream.ReadSingle: Single;
+{ Reads a bunch of chars from the file. Fedra. Why 'ReadChars' and not 'ReadString'? This function reads C++ strings (the length of the string was not written to disk also) and not real Delphi strings. So, i have to give the number of chars to read as parameter. IMPORTANT: The function will reserve memory for s. }
+function TCubicBuffStream.ReadChars(Count: Longint): AnsiString;
 begin
- Read(Result, 4);                                                                              { The size of Double is 8 bytes }
-end;
-
-
-procedure TWriteCachedStream.WriteSingle(CONST Sngl: Single);
-begin
- Write(sngl, 4);                                                                             { The size of Double is 8 bytes }
+ if Count= 0 then RAISE Exception.Create('Count is zero!');                     { It gives a range check error if you try s[1] on an empty string so we added 'Count = 0' as protection. }
+ SetLength(Result, Count);
+ ReadBuffer(Result[1], Count);
+{ Alternative:  Result:= Read(Pointer(s)^, Count)= Count;     <--- Don't use this! Ever. See explanation from A Buchez:   http://stackoverflow.com/questions/6411246/pointers-versus-s1 }
 end;
 
 
 
 
-{ DATE }
 
-function TReadCachedStream.ReadDate: TDateTime;
-VAR Temp: Double;
+
+
+
+
+
+
+{--------------------------------------------------------------------------------------------------
+   INTEGERS
+--------------------------------------------------------------------------------------------------}
+
+procedure TCubicBuffStream.WriteCardinal(CONST c: Cardinal);
 begin
- Read(Temp, 8);                                                                              { The size of Double is 8 bytes }
- Result:= Temp;
+ WriteBuffer(c, 4);
 end;
 
-
-procedure TWriteCachedStream.WriteDate(CONST aDate: TDateTime);
-VAR Temp: Double;
+function TCubicBuffStream.ReadCardinal: Cardinal;    { Cardinal IS NOT a fundamental type BUT its size is 32 bits across 64-bit and 32-bit platforms.  }
 begin
- Temp:= aDate;
- Write(Temp, 8);                                                                             { The size of Double is 8 bytes }
-end;
-
-
-
-
-{ CARDINAL }
-
-procedure TWriteCachedStream.WriteCardinal(CONST c: Cardinal);
-begin
- Write(c, 4);
-end;
-
-
-function TReadCachedStream.ReadCardinal: Cardinal;
-begin
- Read(Result, 4);
+ ReadBuffer(Result, 4);
 end;
 
 
 
-
-{ INTEGER }
-
-procedure TWriteCachedStream.WriteInteger(CONST i: Integer);
+procedure TCubicBuffStream.WriteInteger(CONST i: Integer);
 begin
- Write(i, 4);
+ WriteBuffer(i, 4);                                                                          { Longint = Fundamental integer type. Its size will not change! }
+end;
+
+function TCubicBuffStream.ReadInteger: Integer;
+begin
+ ReadBuffer(Result, 4);
 end;
 
 
-function TReadCachedStream.ReadInteger: Integer;
+
+procedure TCubicBuffStream.WriteInt64(CONST i: Int64);
 begin
- Read(Result, 4);
+ WriteBuffer(i, 8);
 end;
+
+function TCubicBuffStream.ReadInt64: Int64;
+begin
+ ReadBuffer(Result, 8);
+end;
+
+
+
+procedure TCubicBuffStream.WriteUInt64(CONST i: UInt64);
+begin
+ WriteBuffer(i, 8);                                                                          { Longint = Fundamental integer type. Its size will not change! }
+end;
+
+function TCubicBuffStream.ReadUInt64: UInt64;
+begin
+ ReadBuffer(Result, 8);
+end;
+
+
+
+
 
 
 
 
 { BYTE }
 
-procedure TWriteCachedStream.WriteByte(CONST b: Byte);
+procedure TCubicBuffStream.WriteByte(CONST b: Byte);
 begin
- Write(b, 1);
+ WriteBuffer(b, 1);
 end;
 
-
-function TReadCachedStream.ReadByte: Byte;
+function TCubicBuffStream.ReadByte: Byte;
 begin
- Read(Result, 1);
-end;
-
-
-
-
-procedure TWriteCachedStream.WriteShortInt(CONST s: ShortInt);     //Signed 8bit: -128..127
-begin
- Write(s, 1);
-end;
-
-
-function TReadCachedStream.ReadShortInt: ShortInt;
-begin
- Read(Result, 1);
-end;
-
-
-
-procedure TWriteCachedStream.WriteSmallInt(CONST s: SmallInt);     //Signed 16bit: -32768..32767
-begin
- Write(s, 2);
-end;
-
-
-function TReadCachedStream.ReadSmallInt: SmallInt;
-begin
- Read(Result, 2);
-end;
-
-
-
-
-
-
-procedure TWriteCachedStream.WriteBytes(CONST Buffer: TByteDynArray);
-begin
- WriteCardinal(Length(Buffer));
- Write(Buffer[0], High(Buffer));
-end;
-
-
-function TReadCachedStream.ReadBytes: TByteDynArray;
-VAR Cnt: Cardinal;
-begin
- Cnt:= ReadCardinal;
- SetLength(Result, Cnt);
- Read(Result[0], Cnt);
+ ReadBuffer(Result, 1);
 end;
 
 
@@ -1115,17 +508,40 @@ end;
 
 { BOOLEAN }
 
-function TReadCachedStream.ReadBoolean: Boolean;
+procedure TCubicBuffStream.WriteBoolean(CONST b: bool);
+begin
+ WriteBuffer(b, 1);
+end;
+
+function TCubicBuffStream.ReadBoolean: Boolean;
 VAR b: byte;
 begin
- Read(b, 1);                                  { Valid values for a Boolean are 0 and 1. If you put a different value into a Boolean variable then future behaviour is undefined. You should read into a byte variable b and assign b <> 0 into the Boolean. Or sanitise by casting the byte to ByteBool. Or you may choose to validate the value read from the file and reject anything other than 0 and 1. http://stackoverflow.com/questions/28383736/cannot-read-boolean-value-with-tmemorystream }
+ ReadBuffer(b, 1);    { Valid values for a Boolean are 0 and 1. If you put a different value into a Boolean variable then future behaviour is undefined. You should read into a byte variable b and assign b <> 0 into the Boolean. Or sanitise by casting the byte to ByteBool. Or you may choose to validate the value read from the file and reject anything other than 0 and 1. http://stackoverflow.com/questions/28383736/cannot-read-boolean-value-with-tmemorystream }
  Result:= b <> 0;
 end;
 
 
-procedure TWriteCachedStream.WriteBoolean(const b: bool);
+
+procedure TCubicBuffStream.WriteShortInt(CONST s: ShortInt);     //Signed 8bit: -128..127
 begin
- Write(b, 1);
+ Write(s, 1);
+end;
+
+function TCubicBuffStream.ReadShortInt: ShortInt;
+begin
+ Read(Result, 1);
+end;
+
+
+
+procedure TCubicBuffStream.WriteSmallInt(CONST s: SmallInt);     //Signed 16bit: -32768..32767
+begin
+ Write(s, 2);
+end;
+
+function TCubicBuffStream.ReadSmallInt: SmallInt;
+begin
+ Read(Result, 2);
 end;
 
 
@@ -1134,41 +550,14 @@ end;
 
 { WORD }
 
-procedure TWriteCachedStream.WriteWord(const w: Word);
+procedure TCubicBuffStream.WriteWord(CONST w: Word);
 begin
- Write(W, 2);
+ WriteBuffer(w, 2);
 end;
 
-
-function TReadCachedStream.ReadWord: Word;
+function TCubicBuffStream.ReadWord: Word;
 begin
- Read(Result, 2);
-end;
-
-
-function TReadCachedStream.ReadWordSwap: Word;
-begin
- Read(Result, 2);
- SwapWord(Result);
-end;
-
-
-
-
-
-{ ENTER }
-
-procedure TWriteCachedStream.WriteEnter;
-VAR W: Word;
-begin
- W:= $0D0A;
- Write(w, 2);
-end;
-
-
-function TReadCachedStream.ReadEnter: Word;  { Should return $0D0A (or 3338 zecimal) }
-begin
- Read(Result, 2);
+ ReadBuffer(Result, 2);
 end;
 
 
@@ -1177,148 +566,253 @@ end;
 
 
 
+{ BYTES }
 
-
-
-
-
-
-
-{ READ LINE }
-
-procedure TReadCachedStream.FirstLine;    { Go to first line. I need to use it after CountLines }
+procedure TCubicBuffStream.WriteBytes(CONST Buffer: TByteDynArray);
 begin
- Buff       := '';
- BuffPos    := 0;
- LastAddress:= 0;
- Position   := 0;
- EOF        := FALSE;
+ WriteCardinal(Length(Buffer));
+ WriteBuffer(Buffer[0], High(Buffer));
+end;
+
+function TCubicBuffStream.ReadBytes: TByteDynArray;
+VAR Cnt: Cardinal;
+begin
+ Cnt:= ReadCardinal;
+ SetLength(Result, Cnt);
+ ReadBuffer(Result[0], Cnt);
 end;
 
 
 
-procedure TReadCachedStream.fillBuffer;
-VAR s: AnsiString;
+
+
+{ SINGLE }
+
+function TCubicBuffStream.ReadSingle: Single;
 begin
- { Do I have to fill the buffer? }
- if (Length(Buff)- BuffPos < MaxLineLength)    { Buffer is getting empty }
- AND (LastAddress < Size) then  { I need this for TINY tiny files -> file that are smaller than the capacity of the buffer (MaxSeqLen) so I read them at a single pass }
+ Read(Result, 4);
+end;
+
+procedure TCubicBuffStream.WriteSingle(CONST Sngl: Single);
+begin
+ Write(sngl, 4);
+end;
+
+
+
+
+{ DATE }
+
+function TCubicBuffStream.ReadDate: TDateTime;
+begin
+ ReadBuffer(Result, 8);
+end;
+
+
+procedure TCubicBuffStream.WriteDate(CONST d: TDateTime);
+begin
+ //VAR Temp: Double; Temp:= d;
+ WriteBuffer(d, 8);  { The size of Double is 8 bytes }
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+{--------------------------------------------------------------------------------------------------
+   READ MACINTOSH
+--------------------------------------------------------------------------------------------------}
+function TCubicBuffStream.RevReadLongword: Cardinal;                                         { REVERSE READ - read 4 bytes and swap their position }
+begin
+  ReadBuffer( Result, 4);
+  SwapCardinal(Result);
+end;
+
+
+function TCubicBuffStream.RevReadLongInt: Longint;
+begin
+  ReadBuffer(Result, 4);
+  SwapInt(Result);
+end;
+
+
+function TCubicBuffStream.RevReadWord: Word;                                                 { REVERSE READ - read 2 bytes and swap their position }   // old name ReadWordSwap
+begin
+  ReadBuffer(Result, 2);
+  Result:= Swap(Result);                                                                     { Exchanges high order byte with the low order byte of an integer or word. In Delphi code, Swap exchanges the high-order bytes with the low-order bytes of the argument. X is an expression of type SmallInt, as a 16-bit value, or Word. This is provided for backward compatibility only. }
+  //Also see: ccBinary.SwapWord
+end;
+
+
+function TCubicBuffStream.RevReadInt: Cardinal;                                              { REVERSE READ - read 4 bytes and swap their position - reads a UInt4. Used in 'UNIT ReadSCF' }
+begin
+ ReadBuffer(Result, 4);
+ SwapCardinal(Result);
+end;
+
+
+
+
+
+
+
+{--------------------------------------------------------------------------------------------------
+   PUSH/LOAD DATA DIRECTLY INTO THE STREAM
+--------------------------------------------------------------------------------------------------}
+
+{ Read the raw content of the file and return it as string (for debugging) }
+function TCubicBuffStream.AsString: AnsiString;
+begin
+ Position:= 0;
+ Result:= ReadStringA(Size);
+end;
+
+
+{ Write raw data to file }
+procedure TCubicBuffStream.PushData(CONST Data: AnsiString);   //ToDo: this should have an overload that saves an array of bytes instead of AnsiString
+begin
+ WriteBuffer(Data[1], Length(Data));
+end;
+
+
+
+
+
+
+
+
+
+
+{--------------------------------------------------------------------------------------------------
+   Others
+--------------------------------------------------------------------------------------------------}
+CONST
+   ctCheckPoint= '<*>Checkpoint<*>';    { For debugging. Write this from time to time to your file so if you screwup, you check from time to time to see if you are still reading the correct data. }
+
+
+{ For debugging. Write a scheckpoint entry (just a string) from time to time to your file so if you screwup, you check from time to time to see if you are still reading the correct data. }
+function TCubicBuffStream.ReadCheckPoint: Boolean;
+begin
+ Result:= ReadStringA = ctCheckPoint;
+end;
+
+procedure TCubicBuffStream.WriteCheckPoint;
+begin
+ WriteStringA(ctCheckPoint);
+end;
+
+
+
+
+
+{--------------------------------------------------------------------------------------------------
+   Special functions
+   STRING WITHOUT LENGTH
+--------------------------------------------------------------------------------------------------}
+procedure TCubicBuffStream.WriteStringANoLen(CONST s: AnsiString);                           { Write the string but don't write its length }
+begin
+ Assert(s<> '', 'WriteStringA - The string is empty');                                       { This makes sure 's' is not empty. Else I will get a RangeCheckError at runtime }
+ WriteBuffer(s[1], Length(s));
+end;
+
+
+function TCubicBuffStream.ReadStringAR(CONST Len: integer): AnsiString;                      { This is the relaxed/safe version. It won't raise an error if there is not enough data (Len) to read }
+VAR ReadBytes: Integer;
+begin
+ Assert(Len> -1, 'TCubicBuffStream-String size is: '+ IntToStr(Len));
+
+ if (Len+ Position > Size)
+ then raise Exception.Create('TCubicBuffStream-Invalid string size!');
+
+ if Len= 0
+ then Result:= ''
+ else
   begin
-   { Read more data }
-   s:= ReadStringA(MaxLineLength);
-   if s<> ''
-   then
-    begin
-     LastAddress:= LastAddress+ Length(s);
-
-     { Rebuild the buffer }
-     Buff:= system.COPY(Buff, BuffPos, MaxInt);
-     Buff:= Buff+ s;
-     BuffPos:= 1;
-    end;
+   SetLength(Result, Len);                                                                   { Initialize the result }
+   ReadBytes:= Read(Result[1], Len);
+   if ReadBytes<> Len                                                                        { Not enough data to read? }
+   then SetLength(Result, ReadBytes);
   end;
 end;
 
 
 
-
-
-function TReadCachedStream.ReadLine: AnsiString;    { Read only non-empty lines. Empty lines are simply ignored. }
-VAR
-   ValidChar, i: Integer;                                           { ValidChar = the position of the caracter BEFORE the enter }
+{ Writes the string to file but does not write its length.
+  In most cases you will want to use WriteString instead of WriteStringUNoLen. }             { Used in cmEncodeMime.pas }
+procedure TCubicBuffStream.WriteStringUNoLen(CONST s: string);
+VAR UTF: UTF8String;
 begin
- FillBuffer;
- Assert(BuffPos < Size, 'Trying to read beyond EOF!');
-
- LineOffset:= (Position- Length(Buff)) + (BuffPos- indexdiff);      { Used by Fasta Sorter to retrieve sequence start }
- ValidChar:= Length(Buff);                                          { I set it to the end of the buffer because I need it this way when I read the last line in the FastQ file and there is no ENTER at the end (the file doesn't end with an enter) }
-
- for i:= BuffPos to Length(Buff) DO                                 { Find the first enter }
-  if Buff[i] in [CR, LF] then
-   begin
-    ValidChar:= i-1;
-    Break;
-   end;
-
- Result:= CopyTo(Buff, BuffPos, ValidChar);                         { +1 beacuse I want to skip over the '>' sign }
- BuffPos:= ValidChar+1;                                             { Skip over the ENTER character }
-
- { Find additional enter characters }
- WHILE (BuffPos+1 <= Length(Buff) )                                 { there is more data to read? }
- AND (Buff[BuffPos+1] in [CR, LF])
-  DO inc(BuffPos);
-
- inc(BuffPos);                                                      { Now BuffPos points to the first char in the next row }
-
- EOF:= (BuffPos >= Length(Buff));                                   {+3 allow 2 enter characters at the end of the file }
+ UTF := UTF8String(s);
+ if Length(UTF) > 0
+ then WriteBuffer(UTF[1], Length(UTF));
 end;
 
 
-function TReadCachedStream.ReadEachLine: AnsiString;   { Read all lines, including the empty lines. The Enter must be a Windows Enter (CRLF) }
-VAR
-   ValidChar, i: Integer;                                                                       { ValidChar = the position of the caracter BEFORE the enter }
+{ Read a string from file. The length of the string will be provided from outside. }
+function TCubicBuffStream.ReadStringUNoLen(CONST Len: Integer): string;
+VAR UTF: UTF8String;
 begin
- FillBuffer;
- Assert(BuffPos < Size, 'Trying to read beyond EOF!');
+ if Len > 0
+ then
+  begin
+   SetLength(UTF, Len);
+   ReadBuffer(UTF[1], Len);
+   Result:= string(UTF);
+  end
+ else Result:= '';
+end;
 
- LineOffset:= (Position- Length(Buff)) + (BuffPos- indexdiff);                                  { Used by Fasta Sorter to retrieve sequence start }
- ValidChar:= Length(Buff);                                                                      { I set it to the end of the buffer because I need it this way when I read the last line in the FastQ file and there is no ENTER at the end (the file doesn't end with an enter) }
 
- for i:= BuffPos to Length(Buff) DO                                                             { Find the first enter }
-  if Buff[i] = CR then
-   begin
-    ValidChar:= i-1;
-    Break;
-   end;
+{ Read the first Count characters from a file.
+  Returns ANSI string. }
+function StringFromFileStart (CONST FileName: string; Count: Cardinal): AnsiString;
+VAR StreamFile: TCubicBuffStream;
+begin
+ SetLength(Result, Count);
 
- Result:= CopyTo(Buff, BuffPos, ValidChar);                                                     { +1 beacuse I want to skip over the '>' sign }
- BuffPos:= ValidChar+1;                                                                         { Skip over the ENTER character }
+ StreamFile:= TCubicBuffStream.Create(FileName, fmOpenRead);                                          { <--------- EFCreateError:   Cannot create file "blablabla". Access is denied. }
+ TRY
+   Result:= StreamFile.ReadStringAR(Count);
+ FINALLY
+   FreeAndNil(StreamFile);
+ END;
+end;
 
- { Find the LF character }
- if (BuffPos+1 <= Length(Buff) )                                                             { there is more data to read? }
- AND (Buff[BuffPos+1] = LF)
- then inc(BuffPos);
 
- inc(BuffPos);                                                                                  { Now BuffPos points to the first char in the next row }
+function TCubicBuffStream.CountAppearance(C: AnsiChar): Int64;    { Used by TFasParser.CountSequences }
+var
+   s: AnsiString;    { When I open the file I don't know how many sequences I have inside. CountSequences reads all sequences to find out how many I have }
+   BuffPo: Int64;
+begin
+ Result:= 0;
+ BuffPo:= 0;
+ Position:= 0;
 
- EOF:= (BuffPos >= Length(Buff));                                                               {+3 allow 2 enter characters at the end of the file }
+ WHILE BuffPo< Size DO
+  begin
+   s:= ReadStringA(1024*KB);
+   Inc(BuffPo, 1024*KB);
+   Result:= Result+ Cardinal(ccCore.CountAppearance(c, s));
+  end;
 end;
 
 
 
-function TReadCachedStream.ReadLines(StopChar: AnsiChar): AnsiString;      { Read lines until 'StopChar' is encountered }  { Used by: TFasParser.ReadNextSample }
-begin
- Result:= ReadLine;
+(* put it back
 
- { Check if bases continues on the next line }
- WHILE (BuffPos < Length(Buff))                                                                 { Don't go out of the buffer }
- AND (Buff[BuffPos] <> StopChar)                                                                     { If next row doesn't start with '>' }
-  DO Result:= Result+ ReadLine;                                                                 { Read bases until I encounter the next > sign }
-end;
-
-
-
-
-procedure TReadCachedStream.GoToOffset(Offset: Int64);   { Flush buffer, move to the specified offset. The next ReadLine will fill the buffer with data from that position }
-begin
- Buff       := '';
- BuffPos    := 0;
- LastAddress:= Offset;
- Position   := Offset;
- EOF        := FALSE;
-end;
-
-
-
-
-function TReadCachedStream.CountLines: Int64;                                                   { NOTE!!! ccCore.CountLines is 5.2 times faster than this, but that function does not handle well Mac/Linux files!!! }
-
+function TCubicBuffStream.CountLines: Int64;{ NOTE!!! ccCore.CountLines is 5.2 times faster than this, but that function does not handle well Mac/Linux files!!! }
   procedure ReadLn;
   VAR
-     ValidChar, i: Integer;                                                                       { ValidChar = the position of the caracter BEFORE the enter }
+     ValidChar, i: Integer;                 { ValidChar = the position of the caracter BEFORE the enter }
   begin
-   FillBuffer;
-   ValidChar:= Length(Buff);                                                                      { I set it to the end of the buffer because I need it this way when I read the last line in the FastQ file and there is no ENTER at the end (the file doesn't end with an enter) }
+   ValidChar:= Length(Buff);                { I set it to the end of the buffer because I need it this way when I read the last line in the FastQ file and there is no ENTER at the end (the file doesn't end with an enter) }
 
    { Find the first enter }
    for i:= BuffPos to Length(Buff) DO
@@ -1327,10 +821,10 @@ function TReadCachedStream.CountLines: Int64;                                   
       ValidChar:= i;
       Break;
      end;
-   BuffPos:= ValidChar;                                                                         { Skip over the ENTER character }
+   BuffPos:= ValidChar;                     { Skip over the ENTER character }
 
    { Find additional enter characters }
-   WHILE (BuffPos+1 <= Length(Buff) )                                                             { there is more data to read? }
+   WHILE (BuffPos+1 <= Length(Buff) )       { there is more data to read? }
    AND (Buff[BuffPos+1] in [CR, LF])
     DO inc(BuffPos);
 
@@ -1348,30 +842,7 @@ begin
    ReadLn;       {TODO 1: speed improvement: modify the ReadLine function to a procedure. I don't need to actually dead the text. I only need to find the enters }
    Inc(Result);
   end;
-end;
-
-
-
-
-function TReadCachedStream.CountAppearance(C: AnsiChar): Int64;    { Used by TFasParser.CountSequences }
-var
-   s: AnsiString;    { When I open the file I don't know how many sequences I have inside. CountSequences reads all sequences to find out how many I have }
-   BuffPo: Int64;
-begin
- Result:= 0;
- BuffPo:= 0;
- FirstLine;
-
- WHILE BuffPo< Size DO
-  begin
-   s:= ReadStringA(1024*KB);
-   Inc(BuffPo, 1024*KB);
-   Result:= Result+ Cardinal(ccCore.CountAppearance(c, s));
-  end;
-end;
-
-
-
+end; *)
 
 
 

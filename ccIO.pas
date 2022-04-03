@@ -2,7 +2,7 @@ UNIT ccIO;
 
 {==================================================================================================
    CubicDesign
-   2021.10.23
+   2022-04-03
    See Copyright.txt
 
    Super useful functions for file/folder/disk manipulation:
@@ -71,7 +71,7 @@ INTERFACE
 {$WARN UNIT_PLATFORM OFF}   {Silence the 'W1005 Unit Vcl.FileCtrl is specific to a platform' warning }
 
 USES
-  winapi.Windows, Winapi.ShellAPI, Winapi.ShlObj, System.Win.Registry, System.Masks, System.Generics.Collections, System.Types, Vcl.Consts,
+  winapi.Windows, Winapi.ShellAPI, Winapi.ShlObj, System.Win.Registry, System.Masks, {System.Generics.Collections,} System.Types, Vcl.Consts,
   System.StrUtils, System.IOUtils, System.SysUtils, System.Classes, Vcl.Controls, Vcl.Dialogs, Vcl.Forms, Vcl.FileCtrl;
 
 CONST
@@ -320,7 +320,7 @@ CONST
 
  { OTHERS }
  function  CountLines          (CONST Filename: string; CONST BufferSize: Cardinal= 128000): Int64;                     { Opens a LARGE text file and counts how many lines it has. It does this by loading a small portion of the file in a RAM buffer }
- procedure SortTextFile        (CONST InputName, OutputFile: string);    { Limited on ~1.7GB files on 32 bit. Also limited by mem fragmentation }
+/// procedure SortTextFile        (CONST InputName, OutputFile: string);    { Limited on ~1.7GB files on 32 bit. Also limited by mem fragmentation }
  function  WriteBinFile        (CONST FileName: string; CONST Data: TBytes; CONST Overwrite: Boolean= TRUE): Boolean;
  procedure SetCompressionAtr   (CONST FileName: string; const CompressionFormat: USHORT= 1);    // http://stackoverflow.com/questions/7002575/how-can-i-set-a-files-compression-attribute-in-delphi
 
@@ -437,14 +437,11 @@ CONST
  function  GetLogicalDrives: TStringDynArray;  inline;
 
 
-
-
-
 IMPLEMENTATION
+
 USES
   ccWinVersion,
   ccAppData,
-  ccStreamBuff,
   ccCore;
 
 
@@ -683,7 +680,13 @@ ________________________________________________________________________________
 {$IFDEF MSWindows}
 { Keywords: FolderDialog, BrowseForFolder
   stackoverflow.com/questions/19501772
-  Works with UNC paths }
+  Works with UNC paths
+
+  Also see:
+    since Delphi 10/Seattle
+    (it is effectively the same thing as the TFileOpenDialog approach, but with less boilerplate code)
+    function SelectDirectory(const StartDirectory: string; out Directories: TArray<string>; Options: TSelectDirFileDlgOpts = []; const Title: string = ''; const FolderNameLabel: string = ''; const OkButtonLabel: string = ''): Boolean; overload;
+}
 function SelectAFolder(VAR Folder: string; CONST Title: string = ''; CONST Options: TFileDialogOptions= [fdoPickFolders, fdoForceFileSystem, fdoPathMustExist, fdoDefaultNoMiniMode]): Boolean;    { intoarce true daca userul a dat OK si false daca userul a dat cancel } { Keywords: FolderDialog, BrowseForFolder}  { http://stackoverflow.com/questions/19501772/i-need-a-decent-open-folder-dialog#19501961 }
 VAR Dlg: TFileOpenDialog;
 begin
@@ -720,7 +723,9 @@ end;
 
 {-------------------------------------------------------------------------------------------------------------
    Prompt To Save/Load File
-   Example: PromptToSaveFile(s, ccCore.FilterTxt, 'txt')
+   Example: PromptToSaveFile(s, cGraphUtil.JPGFtl, 'txt')
+
+   DefaultExt. Only for TSaveDialog. Extensions longer than three characters are not supported! Do not include the period (.) that divides the file name and its extension.
 -------------------------------------------------------------------------------------------------------------}
 function PromptToSaveFile(VAR FileName: string; Filter: string = ''; DefaultExt: string= ''; Title: string= ''; InitialDir: string = ''): Boolean;
 begin
@@ -729,6 +734,7 @@ end;
 
 
 { AllowMultiSelect cannot be true, because I return a single file name (cannot return a Tstringlist)  }
+//ToDo 1: Implement two variables: AppLastFile and AppLastFolder
 Function PromptToLoadFile(VAR FileName: string; Filter: string = ''; Title: string= ''; InitialDir: string = ''): Boolean;
 begin
  if InitialDir = '' then
@@ -756,14 +762,14 @@ begin
     else Dialog.Options := Dialog.Options + [ofFileMustExist];
 
     Dialog.Title := Title;
-    Dialog.DefaultExt := DefaultExt;  { Only for TSaveDialog. Extensions longer than three characters are not supported! Do not include the period (.) that divides the file name and its extension. }
+    Dialog.DefaultExt := DefaultExt;
 
-    if Dialog.Filter = ''
+    if Filter = ''
     then Dialog.Filter := Vcl.Consts.sDefaultFilter
     else Dialog.Filter := Filter;
 
     if InitialDir= ''
-    then InitialDir:= GetAppDataFolder;
+    then InitialDir:= AppDataFolder;
     Dialog.InitialDir := InitialDir;
 
     Dialog.FileName := FileName;
@@ -799,7 +805,7 @@ begin
  Result.Title:= Caption;
 
  if FileName= ''
- then Result.InitialDir:= GetAppDataFolder
+ then Result.InitialDir:= AppDataFolder
  else Result.InitialDir:= ExtractFilePath(FileName);
 end;
 
@@ -814,7 +820,7 @@ begin
  Result.Title:= Caption;
 
  if FileName= ''
- then Result.InitialDir:= GetAppDataFolder
+ then Result.InitialDir:= AppDataFolder
  else Result.InitialDir:= ExtractFilePath(FileName);
 end;
 
@@ -1148,10 +1154,6 @@ function IsGIF(CONST AGraphFile: string): Boolean;
 begin
  Result:= ExtractFileExtIns(AGraphFile)= '.GIF';
 end;
-
-
-
-
 
 
 function IsJpg(CONST AGraphFile: string): Boolean;
@@ -1749,7 +1751,8 @@ end;
 
 
 
-function ExtractTimeFromFileName(FileName: string): TTime;     { The time must be at the end of the file name. Example: 'MyPicture 20-00.jpg'. Returns 0 if the time could not be extracted. }
+{ The time must be at the end of the file name. Example: 'MyPicture 20-00.jpg'. Returns 0 if the time could not be extracted. }
+function ExtractTimeFromFileName(FileName: string): TTime;
 VAR s: string;
 begin
  s:= ExtractOnlyName(FileName);
@@ -2104,7 +2107,7 @@ end;
 --------------------------------------------------------------------------------------------------}
 function GetProgramFilesDir: string;
 
-    { This function is copied from ccRegistry, but we don't want to depend on that unit, so... }
+    { This function is copied from cmRegistry, but we don't want to depend on that unit, so... }
     function RegReadString (CONST Root: HKEY; CONST Key, ValueName: string; DefValData: String= ''): string;
     VAR Rg: TRegistry;
     begin
@@ -2313,7 +2316,8 @@ end;
   READ/WRITE ANSI
 --------------------------------------------------------------------------------------------------}
 
-function StringFromFileA(CONST FileName: string): AnsiString;                                    { Read a WHOLE file and return its content as AnsiString. The function will not try to autodetermine file's type. It will simply read the file as ANSI. Also see this: http://www.fredshack.com/docs/delphi.html }
+{ Read a WHOLE file and return its content as AnsiString. The function will not try to autodetermine file's type. It will simply read the file as ANSI. Also see this: http://www.fredshack.com/docs/delphi.html }
+function StringFromFileA(CONST FileName: string): AnsiString;
 VAR Stream: TFileStream;
 begin
  Result:= '';
@@ -2327,7 +2331,7 @@ begin
     end;
 
    SetString(Result, NIL, Stream.Size);
-   Stream.ReadBuffer(Pointer(Result)^, Stream.Size);                                                            { aici era PAnsiChar in loc de Pointer }                                       { <- this is the correct way  |  fs.Write(s, Length(s))  ->  this will give you garbage }
+   Stream.ReadBuffer(Pointer(Result)^, Stream.Size);
  FINALLY
    FreeAndNil(Stream);
  END;
@@ -2407,7 +2411,7 @@ end;
 
   Speed test on 150MB file:
      TFileStream (this): 15ms
-     TReadCachedStream: 78ms
+     TCubicBuffStream: 78ms
      Delphi's ReadLn: 8518ms
   Speed tester here: c:\MyProjects\Packages\CubicCommonControls-Testers\CountLines tester\Tester.exe
 
@@ -2471,18 +2475,19 @@ end;
 
 
 { Limited on ~1.7GB files on 32 bit. Also limited by mem fragmentation. Time: 1560ms for a 2.35MB file }
+(*todo: put it back
 procedure SortTextFile(CONST InputName, OutputFile: string);
 var
   I: Integer;
   Arr: array of String;         {TODO 5: use AnsiString }
   Lines: Integer;
-  InputFile: ccStreamBuff.TReadCachedStream;
+  InputFile: TCubicBuffStream;
 begin
-  InputFile:= TReadCachedStream.Create(InputName);
+  InputFile:= TCubicBuffStream.Create(InputName, fmOpenRead);
   TRY
    { Find out how many lines I have in file. I need this in order to allocate all memory necessary for sorting in one big chunck (prevent memory fragmentation problems) }
    Lines:= InputFile.CountLines;
-   InputFile.FirstLine;
+   InputFile.Position:= 0;
 
    { Get RAM }
    SetLength(Arr, Lines);        { THIS MAY FAIL IF NOT ENOUGH RAM or IF MEM IS FRAGMENTED }
@@ -2501,7 +2506,7 @@ begin
   FINALLY
    FreeAndNil(InputFile);
   END;
-end;
+end;  *)
 
 
 
@@ -3017,7 +3022,7 @@ VAR
    List: system.Types.TStringDynArray;
 begin
  if NOT System.IOUtils.TDirectory.Exists (aFolder)
- then RAISE exception.Create('Folder does not exist! '+ CRLF+ aFolder);
+ then RAISE Exception.Create('Folder does not exist! '+ CRLF+ aFolder);
 
  Result:= TStringList.Create;
 
@@ -3453,23 +3458,23 @@ function GetSpecialFolderReg (OS_SpecialFolder: string): string;                
   The published API is the "right" way to access these data, because Microsoft has to support it for a long time.
   Writing application that use undocumented features expose them to compatibility issues.
   The folders retrieved should include:
-    cShellAppData =    'AppData';
-    cShellCache =      'Cache';
-    cShellCookies =    'Cookies';
-    cShellDesktop =    'Desktop';
-    cShellFavorites =  'Favorites';
-    cShellFonts =      'Fonts';
-    cShellHistory =    'History';
-    cShellLocalApp =   'Local AppData';
-    cShellNetHood =    'NetHood';
-    cShellPersonal =   'Personal';
-    cShellPrintHood =  'PrintHood';
-    cShellPrograms =   'Programs';
-    cShellRecent =     'Recent';
-    cShellSendTo =     'SendTo';
-    cShellStartMenu =  'Start Menu';
-    CShellStartUp =    'Startup';
-    cShellTemplates =  'Templates';                                          }
+    cmShellAppData =    'AppData';
+    cmShellCache =      'Cache';
+    cmShellCookies =    'Cookies';
+    cmShellDesktop =    'Desktop';
+    cmShellFavorites =  'Favorites';
+    cmShellFonts =      'Fonts';
+    cmShellHistory =    'History';
+    cmShellLocalApp =   'Local AppData';
+    cmShellNetHood =    'NetHood';
+    cmShellPersonal =   'Personal';
+    cmShellPrintHood =  'PrintHood';
+    cmShellPrograms =   'Programs';
+    cmShellRecent =     'Recent';
+    cmShellSendTo =     'SendTo';
+    cmShellStartMenu =  'Start Menu';
+    cmShellStartUp =    'Startup';
+    cmShellTemplates =  'Templates';                                          }
 VAR Reg: TRegistry;
 begin
   Result:= '';
@@ -3596,7 +3601,7 @@ begin
  Result:= FALSE;
  SpecialFolders:= GetSpecialFolders;
  TRY
-  //del SpecialFolders.SaveToFile(GetAppDir+ 'special folders.txt');
+  //del SpecialFolders.SaveToFile(AppDir+ 'special folders.txt');
   for s in SpecialFolders DO
    if SameFolder(Path, s)
    then EXIT(TRUE);

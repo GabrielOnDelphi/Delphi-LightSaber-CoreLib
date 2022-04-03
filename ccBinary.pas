@@ -2,7 +2,7 @@ UNIT ccBinary;
 
 {=======================================================================================================================
    CubicDesign
-   2021.10.23
+   2022-04-03
    See Copyright.txt
 
    Contains:
@@ -265,6 +265,7 @@ end;
 
 {$IFDEF CPUx86}
 { See:
+     System.Swap
      http://stackoverflow.com/questions/5133938/procedure-that-swaps-the-bytes-low-high-of-a-word-variable
      http://docwiki.embarcadero.com/RADStudio/XE8/en/Conditional_compilation_%28Delphi%29 }
 procedure SwapWord(VAR TwoBytes: Word); assembler;
@@ -354,7 +355,7 @@ begin
 end;
 
 
-{$IFDEF CPUx86}   // code cloned also in cStreamMem
+{$IFDEF CPUx86}   // code cloned also in cmStreamMem
 procedure SwapInt(VAR LongVar: Longint);                                        { It will not work with negative numbers becuase the sign will be swapped also.  Longint = signed 32 integer (classic integer).      Ex: $AABBCCDD becomes $DDCCBBAA }
 asm
   mov ecx, [eax]                                                                { This code does not work on Win64 }
