@@ -111,6 +111,8 @@ Example:
 - Call SaveForm(MySettingsForm) in TMySettingsForm.OnDestroy     
 - Call LoadForm(MySettingsForm) after the creation of TMySettingsForm     
 
+A full demo app that demonstrates how to save/load the GUI with just two lines of code can be found here: [github.com/GodModeUser/Dephi-LightSaber-GUI_AutoSave ](https://github.com/GodModeUser/Dephi-LightSaber-GUI_AutoSave)
+
 _____
 
 **Filename convention**  
