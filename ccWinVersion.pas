@@ -1,59 +1,62 @@
 UNIT ccWinVersion;
 
-{=======================================================================================================================
+{=============================================================================================================
    CubicDesign
    2022-04-03
-   This library TOSVersion to get Windows version:
 
-  ---------------------------------------------
-   Windows Serv 2019       10.0
-   Windows 10              10.0 *
-   Windows Serv 2016       10.0
-   Windows 8.1             6.3
-   Windows Serv 2012 R2    6.3
-   -                               Manifest barrier!
-   Windows 8               6.2
-   Windows Serv 2012       6.2
-   Windows 7               6.1  *
-   Windows Serv 2008 R2    6.1
-   Windows Vista           6.0
-   Windows Serv 2008       6.0
-   Windows XP 64-Bit       5.2  *
-   Windows Serv 2003 R2    5.2
-   Windows Serv 2003       5.2
-   Windows XP              5.1  *
-   Windows 2000            5.0
-   Windows Millenium       4.9
-   Windows 98              4.1
-   Windows 95              4.0
-   Windows NT 4.0          4.0
-   Windows NT 3.51         3.51
-   Windows NT 3.5          3.5
-   Windows NT 3.1          3.1
-  ---------------------------------------------
-   https://techthoughts.info/windows-version-numbers/
-  ---------------------------------------------
+   This library expands the TOSVersion.
+   Use it to get Windows version.
 
-  Manifest barrier (from dummzeuch):
-     Starting with Windows 8 the GerVersionEx function is lying. Quote ( https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getversionexa )
-     "With the release of Windows 8.1, the behavior of the GetVersionEx API has changed in the value it will return for the operating system version.
-     The value returned by the GetVersionEx function now depends on how the application is manifested.
-     Applications not manifested for Windows 8.1 or Windows 10 will return the Windows 8 OS version value (6.2).
-     Once an application is manifested for a given operating system version, GetVersionEx will always return the version that the application is manifested for in future releases. To manifest your applications  for Windows 8.1 or Windows 10"
+==============================================================================================================
+   Microsoft Window releases:
+      Windows Serv 2019       10.0
+      Windows 10              10.0 *
+      Windows Serv 2016       10.0
+      Windows 8.1             6.3
+      Windows Serv 2012 R2    6.3
+      -                               Manifest barrier!
+      Windows 8               6.2
+      Windows Serv 2012       6.2
+      Windows 7               6.1  *
+      Windows Serv 2008 R2    6.1
+      Windows Vista           6.0
+      Windows Serv 2008       6.0
+      Windows XP 64-Bit       5.2  *
+      Windows Serv 2003 R2    5.2
+      Windows Serv 2003       5.2
+      Windows XP              5.1  *
+      Windows 2000            5.0
+      Windows Millenium       4.9
+      Windows 98              4.1
+      Windows 95              4.0
+      Windows NT 4.0          4.0
+      Windows NT 3.51         3.51
+      Windows NT 3.5          3.5
+      Windows NT 3.1          3.1
+     ---------------------------------------------
+      https://techthoughts.info/windows-version-numbers/
+     ---------------------------------------------
 
-     So, we can only get the correct version, if the Delphi IDE has a manifest telling Windows that it supports the version installed.
-     This of course will not work if the Delphi version is older than the Windows version (e.g. Delphi 2007 won't know about anything newer than Windows XP).
-     Instead we now use GetFileVersionInfo on kernel32.dll.
-     https://docs.microsoft.com/en-us/windows/desktop/sysinfo/getting-the-system-version
+     Manifest barrier (from dummzeuch):
+        Starting with Windows 8 the GerVersionEx function is lying. Quote ( https://docs.microsoft.com/en-us/windows/desktop/api/sysinfoapi/nf-sysinfoapi-getversionexa )
+        "With the release of Windows 8.1, the behavior of the GetVersionEx API has changed in the value it will return for the operating system version.
+        The value returned by the GetVersionEx function now depends on how the application is manifested.
+        Applications not manifested for Windows 8.1 or Windows 10 will return the Windows 8 OS version value (6.2).
+        Once an application is manifested for a given operating system version, GetVersionEx will always return the version that the application is manifested for in future releases. To manifest your applications  for Windows 8.1 or Windows 10"
+
+        So, we can only get the correct version, if the Delphi IDE has a manifest telling Windows that it supports the version installed.
+        This of course will not work if the Delphi version is older than the Windows version (e.g. Delphi 2007 won't know about anything newer than Windows XP).
+        Instead we now use GetFileVersionInfo on kernel32.dll.
+        https://docs.microsoft.com/en-us/windows/desktop/sysinfo/getting-the-system-version
 
 
-   Support for Win11
+   For support for Win11 see:
       https://stackoverflow.com/questions/68510685/how-to-detect-windows-11-using-delphi-10-3-3
 
 
    Tester:
       c:\MyProjects\Project Testers\ccWinVersion.pas\
-=======================================================================================================================}
+=============================================================================================================}
 
 INTERFACE
 

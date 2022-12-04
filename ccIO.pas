@@ -1,26 +1,25 @@
 UNIT ccIO;
 
-{==================================================================================================
+{=============================================================================================================
    CubicDesign
    2022-04-03
    See Copyright.txt
 
    Super useful functions for file/folder/disk manipulation:
-     * Copy files
-     * File/Folder Exists
-     * Get special Windows folders (My Documents, etc)
-     * Prompt user to select a file/folder
-     * List specified files (*.jpg for ex) in a folder and all its sub-folders
-     * Increment the numbers in a filename (good for incremental backups)
-     * Append strings to file name
-     * Read text from files to a string variable
-     * Compare files
-     * Merge files
-     * Sort lines in a file
-     * Drive manipulation (IsDiskInDrive, etc)
-==================================================================================================
-
-  This unit adds few KB to the size of the compiled EXE file.
+     - Copy files
+     - File/Folder exists
+     - Get special Windows folders (My Documents, etc)
+     - Prompt user to select a file/folder
+     - List specified files (*.jpg for ex) in a folder and all its sub-folders
+     - Increment the numbers in a filename (good for incremental backups)
+     - Append strings to file name
+     - Read text from files to a string variable
+     - Compare files
+     - Merge files
+     - Sort lines in a file
+     - Drive manipulation (IsDiskInDrive, etc)
+     - etc
+==============================================================================================================
 
   EXISTS:
     procedure ProcessPath (FullFileName, Drive, DirPart, FilePart)    // Parses a file name into its constituent parts.
@@ -67,7 +66,6 @@ UNIT ccIO;
 ==================================================================================================}
 
 INTERFACE
-{$WARN GARBAGE OFF}         {Silence the 'W1011 Text after final END' warning }
 {$WARN UNIT_PLATFORM OFF}   {Silence the 'W1005 Unit Vcl.FileCtrl is specific to a platform' warning }
 
 USES
@@ -77,10 +75,10 @@ USES
 CONST
   DigSubdirectories = TRUE;
   UseFullPath       = TRUE;
-  InvalidFileCharWin= ['/','*','?','<','>','|', '"', ':', '\'];                                    { Characters that are invalid for file names OR for folder (just single folders) }
-  InvalidPathChar   = ['/','*','?','<','>','|', '"'];                                              { Characters that are invalid for a FULL path }
+  InvalidFileCharWin= ['/','*','?','<','>','|', '"', ':', '\'];     { Characters that are invalid for file names OR for folder (just single folders) }
+  InvalidPathChar   = ['/','*','?','<','>','|', '"'];               { Characters that are invalid for a FULL path }
   {$IFDEF MSWINDOWS}
-    MAXPATH= MAX_PATH- 12;         { Check like this:  if Path < MAXPATH then... }
+    MAXPATH= MAX_PATH- 12;                                          { Check like this:  if Path < MAXPATH then... }
   {$ELSE}
     MAXPATH= MAX_PATH;
   {$ENDIF}
@@ -88,9 +86,12 @@ CONST
    { FILTERS }
    FilterTxt     = 'TXT file|*.TXT';
    FilterRtf     = 'RTF file|*.RTF';
+   {}
    fltCsv        = '*.csv';
    FilterCsv     = 'CSV file|'+ fltCsv;
-   FilterAllFiles= 'All files|*.*';  { See also Vcl.Consts.SDefaultFilter }
+   {}
+   FilterAllFiles= 'All files|*.*';                                 { See also Vcl.Consts.SDefaultFilter }
+   {}
    fltIni        = '*.ini';
    FilterIni     = 'INI file|'+ fltIni;
    FilterTransl  = 'Translation file|'+ fltIni;
@@ -100,6 +101,9 @@ CONST
    {}
    ctFltSounds   = 'Sound (Wav, mp3, midi, wma)|*.wav;*.mp3;*.mi*;*.au;*.wma';
    ctFltIcons    = 'Icons (*.ico)|*.ico';
+   {}
+   FilterApps    = 'Applications|*.exe';
+   Executables   = '*.exe;*.cmd;*.bat;*.dll;*.ocx';
 
 
 
@@ -133,7 +137,7 @@ CONST
  function  FileNameIsValid_     (CONST FileName: string): Boolean; deprecated 'Use System.IOUtils.TPath.HasValidFileNameChars instead.'
  function  PathNameIsValid      (CONST Path: string): Boolean;    // TPath.HasValidPathChars is bugged     { Returns FALSE if the path contains invalid characters. Tells nothing about the existence of the folder }
  function  IsUnicode            (CONST Path: string): boolean;                                     { returns True if this path seems to be UNICODE }
- function  PathHasValidColon    (const Path: string): Boolean;   //copied from IOUtils.TPath.HasPathValidColon
+ function  PathHasValidColon    (const Path: string): Boolean;
 
 
 {--------------------------------------------------------------------------------------------------
@@ -178,18 +182,29 @@ CONST
 {--------------------------------------------------------------------------------------------------
    SPECIAL FOLDERS
 --------------------------------------------------------------------------------------------------}
+ function  GetTempFolder         : string;
  function  GetWinDir             : string;                                                         { Intoarce calea directorului Windows }
  function  GetProgramFilesDir    : string;
  function  GetWinSysDir          : string;                                                         { Intoarce calea directorului System/System32 }
- function  GetTempFolder         : string;
  function  GetTaskManager        : String;
  function  GetMyDocuments        : string;  {See this for macosx: http://www.malcolmgroves.com/blog/?p=865 }
  function  GetMyPictures         : string;
  function  GetDesktopFolder      : string;
  function  GetStartMenuFolder    : string;
 
- function  GetSpecialFolderReg (OS_SpecialFolder: string): string;                                 { SHELL FOLDERS.  Retrieving the entire list of default shell folders from registry }
- function  GetSpecialFolder    (CSIDL: Integer; ForceFolder: Boolean = FALSE): string;             { uses SHFolder }
+ { New: }
+ function  GetHomePath: string;
+ function  GetDocumentsPath: string;
+ function  GetSharedDocumentsPath: string;
+ function  GetMusicPath: string;
+ function  GetMoviesPath: string;
+ function  GetDownloadsPath: string;
+
+ function  GetMyDocumentsAPI     : string; deprecated 'Use GetMyDocuments instead';
+ function  GetMyPicturesAPI      : string; deprecated 'Use GetMyPictures  instead';
+
+ function  GetSpecialFolder    (OS_SpecialFolder: string): string;                       overload;          { SHELL FOLDERS.  Retrieving the entire list of default shell folders from registry }
+ function  GetSpecialFolder    (CSIDL: Integer; ForceFolder: Boolean = FALSE): string;   overload;          { uses SHFolder }
  function  GetSpecialFolders: TStringList;                                                         { Get a list of ALL special folders. }
  function  FolderIsSpecial     (const Path: string): Boolean;                                      { Returns True if the parameter is a special folder such us 'c:\My Documents' }
 
@@ -199,8 +214,8 @@ CONST
 --------------------------------------------------------------------------------------------------}
  function SelectAFolder    (VAR Folder: string; CONST Title: string = ''; CONST Options: TFileDialogOptions= [fdoPickFolders, fdoForceFileSystem, fdoPathMustExist, fdoDefaultNoMiniMode]): Boolean; overload;
 
- function PromptToSaveFile (VAR FileName: string; Filter: string = ''; DefaultExt: string= ''; Title: string= ''; InitialDir: string = ''): Boolean;
- function PromptToLoadFile (VAR FileName: string; Filter: string = '';                         Title: string= ''; InitialDir: string = ''): Boolean;
+ function PromptToSaveFile (VAR FileName: string; Filter: string = ''; DefaultExt: string= ''; Title: string= ''): Boolean;
+ function PromptToLoadFile (VAR FileName: string; Filter: string = '';                         Title: string= ''): Boolean;
 
  function PromptForFileName(VAR FileName: string; SaveDialog: Boolean; Filter: string = ''; DefaultExt: string= ''; Title: string= ''; InitialDir: string = ''): Boolean;
 
@@ -245,7 +260,6 @@ CONST
 --------------------------------------------------------------------------------------------------}
  function  RemoveDrive         (CONST FullPath: string): string;                                   { C:\MyDocuments\1.doc  ->  MyDocuments\1.doc }
  function  ExtractDrive        (CONST FullPath: string): string;                                   { C:\MyDocuments\1.doc  ->  C }
- // function  ExtractOnlyNameOnly  (CONST FileName: string): string;                               { Extrage numele unui fisier. Daca numele e de tipul nume+extensie+extensie, only the last extension will be eliminated }
  function  ExtractFilePath     (CONST FullPath: string; AcceptInvalidPaths: Boolean= TRUE): string;{ Same as the old ExtractFilePath but uses the new GetDirectoryName function instead  }
  function  ExtractOnlyName     (CONST FileName: string): string;                                   { Extrage numele unui fisier. Daca numele e de tipul nume+extensie+extensie, only the last extension will be eliminated. It uses the new IOUtils lib }
 
@@ -254,10 +268,9 @@ CONST
    FILE EXTENSION
 --------------------------------------------------------------------------------------------------}
  function  RemoveLastExtension (CONST FileName: string): string;                                   { Extrage numele fisierului din nume+extensie. Daca numele este de tipul nume+extensie+extensie, doar ultima extensie este eliminata }
- function  RemoveLastExtension_(CONST FileName: string): string;
+ //function  RemoveLastExtension_(CONST FileName: string): string;
  function  ForceExtension      (CONST FileName, Ext: string): string;                              { makes sure that the 'FileName' file has the extension set to 'Ext'. The 'Ext' parameter should be like: '.txt' }
- function  ExtractFileExtIns   (CONST FileName: string): string;                                   { Case insensitive version }
- // function  RemoveAllExtensions (CONST FileName: string): string;                                { Extrage numele unui fisier. Daca numele e de tipul nume+extensie+ extensie, toate extensiile sunt eliminate }
+ function  ExtractFileExtUp   (CONST FileName: string): string;                                   { Case insensitive version }
 
 
 {--------------------------------------------------------------------------------------------------
@@ -277,7 +290,7 @@ CONST
  function IsEMF   (CONST AGraphFile: string) : Boolean;
  function IsWMF   (CONST AGraphFile: string) : Boolean;
  function IsImage (CONST AGraphFile: string) : Boolean;          { returns TRUE if the file has a good/known extension and it can be converted to BMP }
- function IsImage2(CONST AGraphFile: string) : Boolean;
+ function IsImage2Bmp(CONST AGraphFile: string) : Boolean;
 
  function IsDfm   (CONST FileName  : string) : Boolean;
  function IsPas   (CONST FileName  : string) : Boolean;
@@ -320,7 +333,6 @@ CONST
 
  { OTHERS }
  function  CountLines          (CONST Filename: string; CONST BufferSize: Cardinal= 128000): Int64;                     { Opens a LARGE text file and counts how many lines it has. It does this by loading a small portion of the file in a RAM buffer }
-/// procedure SortTextFile        (CONST InputName, OutputFile: string);    { Limited on ~1.7GB files on 32 bit. Also limited by mem fragmentation }
  function  WriteBinFile        (CONST FileName: string; CONST Data: TBytes; CONST Overwrite: Boolean= TRUE): Boolean;
  procedure SetCompressionAtr   (CONST FileName: string; const CompressionFormat: USHORT= 1);    // http://stackoverflow.com/questions/7002575/how-can-i-set-a-files-compression-attribute-in-delphi
 
@@ -338,11 +350,10 @@ CONST
  function  FileMoveToDir       (CONST From_FullPath, To_DestFolder: string; Overwrite: Boolean): Boolean;
 
  {FOLDERS}
- function  CopyFolder          (CONST FromFolder, ToFolder   : string; Overwrite: boolean): integer;          { copy a folder and all its files and subfolders }
+ function  CopyFolder          (CONST FromFolder, ToFolder   : String; Overwrite: Boolean= True; FileType: string= '*.*'): integer;          { copy a folder and all its files and subfolders }
+ function  MoveFolderRel       (CONST FromFolder, ToRelFolder: string; Overwrite: Boolean= True): string;
+ procedure MoveFolder          (CONST FromFolder, ToFolder   : String; SilentOverwrite: Boolean= True);
  function  MoveFolderSlow      (CONST FromFolder, ToFolder   : String; Overwrite: boolean): Integer; deprecated 'Use TDirectory.Move() instead.';
- procedure MoveFolder          (CONST FromFolder, ToFolder   : String; Overwrite: boolean);
- function  MoveFolderRel       (CONST FromFolder, ToRelFolder: string; Overwrite: boolean): string;           { Example:  MoveFolder('c:\Movies\NewMovies', 'OldMovies') will rename/move the NewMovies folder to 'c:\Movies\OldMovies' }
-
 
 {--------------------------------------------------------------------------------------------------
    BACKUP
@@ -350,7 +361,7 @@ CONST
  function BackupFileIncrement  (CONST FileName: string; DestFolder: string= ''): string;               { Creates a copy of this file in the new folder.  Automatically increments its name. Returns '' in case of copy failure }
  function BackupFileDate       (CONST FileName: string;             TimeStamp: Boolean= TRUE; Overwrite: Boolean = TRUE): Boolean;  overload;     { Create a copy of the specified file in the same folder. The '_backup' string is attached at the end of the filename }
  function BackupFileDate       (CONST FileName, DestFolder: string; TimeStamp: Boolean= TRUE; Overwrite: Boolean = TRUE): Boolean;  overload;
- function BackupFileBak        (CONST FileName: string):Boolean; { Create a copy of this file, and appends as file extension. Ex: File.txt -> File.txt.bak }
+ function BackupFileBak        (CONST FileName: string): Boolean; { Create a copy of this file, and appends as file extension. Ex: File.txt -> File.txt.bak }
 
 
 {--------------------------------------------------------------------------------------------------
@@ -378,8 +389,8 @@ CONST
  function  FileIsLockedRW  (FileName: string): Boolean;                                            { Returns true if the file cannot be open for reading and writing } { old name: FileInUse }
  function  TestWriteAccess (FileOrFolder: string): Boolean;                                        { Returns true if it can write that file to disk. ATTENTION it will overwrite the file if it already exists ! }
  function  TestWriteAccessMsg(CONST FileOrFolder: string): Boolean;                                { USER HAS WRITE ACCESS? Returns an error message instead of boolean}
- function  IsDirectoryWriteable(const Dir: string): Boolean;    { Source: https://stackoverflow.com/questions/3599256/how-can-i-use-delphi-to-test-if-a-directory-is-writeable }
- function  CanCreateFile   (AString:String): BOOL;
+ function  IsDirectoryWriteable(CONST Dir: string): Boolean;    { Source: https://stackoverflow.com/questions/3599256/how-can-i-use-delphi-to-test-if-a-directory-is-writeable }
+ function  CanCreateFile   (AString:String): Boolean;
  function  ShowMsg_CannotWriteTo(CONST sPath: string): string;                                       { Also see  IsDiskWriteProtected }
 
 
@@ -454,7 +465,9 @@ USES
 {--------------------------------------------------------------------------------------------------
    LINUX
 --------------------------------------------------------------------------------------------------}
-function TrailLinuxPathEx(CONST Path: string): string;  { Adds / in front and at the end of the path }
+
+{ Adds / in front and at the end of the path }
+function TrailLinuxPathEx(CONST Path: string): string;
 begin
  Result:= Path;
  if Path > '' then
@@ -468,7 +481,8 @@ begin
 end;
 
 
-function TrailLinuxPath(CONST Path: string): string;  { Adds / at the end of the path }     // old name: URLTrail
+{ Adds / at the end of the path }
+function TrailLinuxPath(CONST Path: string): string;
 begin
  if (Path > '')
  AND (LastChar(Path) <> '/')
@@ -486,10 +500,12 @@ begin
 end;
 
 
-function Convert2LinuxPath(DosPath: string): string;    { Converts DOS path to Linux path. Does not handle C: but only the \ separators }  // old name: MakeLinuxPath
+{ Converts DOS path to Linux path. Does not handle C: but only the \ separators }
+function Convert2LinuxPath(DosPath: string): string;     // old name: MakeLinuxPath
 begin
  Result:= ReplaceCharF(DosPath, '\', '/');;
 end;
+
 
 
 function Convert2DosPath(LinuxPath: string): string;
@@ -508,22 +524,27 @@ end;
 {--------------------------------------------------------------------------------------------------
    FOLDER
 --------------------------------------------------------------------------------------------------}
-function IsUnicode (CONST Path: string): boolean;                                                  { returns True if this path seems to be UNICODE }
+
+{ Returns True if this path seems to be Unicode }
+function IsUnicode (CONST Path: string): boolean;
 begin
- Result:= pos('?', Path)> 0;                                                                       {WTF?}
+ Result:= pos('?', Path)> 0;   {WTF?}
 end;
 
 
-{ Tells if FullPath is a folder or file. THE FOLDER/FILE MUST EXISTS!!! Works with UNC paths }
+{ Tells if FullPath is a folder or file.
+  THE FOLDER/FILE MUST EXISTS!!!
+  Works with UNC paths }
 function IsFolder(CONST FullPath: string): boolean;
 begin
  if FileExists(FullPath)
  then Result:= FALSE
- else Result:= DirectoryExists(FullPath);                                                          { trebuie sa existe ca director }
+ else Result:= DirectoryExists(FullPath);
 end;
 
 
-function ForcePathDelimiters(CONST Path, Delimiter: string; SetAtBegining, SetAtEnd: Boolean): string; { Appends the 'delimiter' at the ends of the string IF it doesn't already exists there. Works with UNC paths }
+{ Appends the 'delimiter' at the ends of the string IF it doesn't already exists there. Works with UNC paths }
+function ForcePathDelimiters(CONST Path, Delimiter: string; SetAtBegining, SetAtEnd: Boolean): string;
 begin
  Assert(Path > '');
 
@@ -536,66 +557,55 @@ begin
 end;
 
 
-function Trail(CONST Path: string): string;    //ok  Works with UNC paths
+{ Works with UNC paths }
+function Trail(CONST Path: string): string;
 begin
- if Path= '' then EXIT('');                                                                        { I may encounter this when I do this:  ExtractLastFolder('c:\'). ExtractLastFolder will return '' }
+ if Path= '' then EXIT('');      { I may encounter this when I do this:  ExtractLastFolder('c:\'). ExtractLastFolder will return '' }
  Result:= IncludeTrailingPathDelimiter(Path)
 end;
 
 
-
-
-
-
-
-
-
-function FolderIsEmpty(const FolderName: string): Boolean;                                         { Check if folder is empty }
+{ Check if folder is empty }
+function FolderIsEmpty(const FolderName: string): Boolean;
 begin
  Result:= TDirectory.IsEmpty(FolderName);
 end;
 
 
-
-function SameFolder(Path1, Path2: string): Boolean;     { Receives two folders. Ex:  C:\Test1\ and C:\teSt1 will return true }
+{ Ex: C:\Test1\ and C:\teSt1 will return true }
+function SameFolder(Path1, Path2: string): Boolean;
 begin
- Path1:= trail(Path1);
- Path2:= trail(Path2);
+ Path1:= Trail(Path1);
+ Path2:= Trail(Path2);
 
  Result:= SameText(Path1, Path2);
 end;
 
 
-function SameFolderFromFile(Path1, Path2: string): Boolean;     { Receives two partial or complete file names and compare their folders. Ex:  C:\Test1 and C:\teSt1\me.txt will return true }
+{ Receives two partial or complete file names and compare their folders.
+  Ex:  C:\Test1 and C:\teSt1\me.txt will return true }
+function SameFolderFromFile(Path1, Path2: string): Boolean;
 begin
  Path1:= ExtractFilePath(Path1);
  Path2:= ExtractFilePath(Path2);
 
- Path1:= trail(Path1);
- Path2:= trail(Path2);
+ Path1:= Trail(Path1);
+ Path2:= Trail(Path2);
 
  Result:= SameText(Path1, Path2);
 end;
-
-
-
-
-
-
 
 
 { Returns a path that is not longer than MAX_PATH allowed in Windows
   It does this by shortening the filename.
   The caller must make sure that the resulted file name won't be too short (0 chars)!
   IMPORTANT! We cannot use TPath here because it cannot handle long file names. Details: http://stackoverflow.com/questions/31427260/how-to-handle-very-long-file-names?noredirect=1#comment50831709_31427260
-
   Also exists:
        FileCtrl.MinimizeName                         if you require pixels.  http://docwiki.embarcadero.com/Libraries/Tokyo/en/Vcl.FileCtrl.MinimizeName
        cGraphics.DrawStringEllipsis
        ccCore.ShortenString
        ccIO.ShortenFileName
 }
-
 function ShortenFileName(CONST FullPath: String; MaxLength: Integer= MAXPATH): string;
 VAR
    FilePath, ShortenedFileName: string;
@@ -617,7 +627,7 @@ end;
 function CheckPathLength(const FullPath: string; MaxLength: Integer= MAXPATH): Boolean;
 begin
  {$IFDEF MSWINDOWS}
- Result:= TPath.IsExtendedPrefixed(FullPath)                                                           { Checks whether a given path has an extended prefix. Call IsExtendedPrefixed to check whether the given path contains an extension prefix. Paths prefixed with \\?\ or \\?\UNC\ are Windows-specific and can be of very big lengths and not restricted to 255 characters (MAX_PATH). It is a common case today to manage paths longer than 255 characters. Prefixing those with \\?\ solves the problem. }
+ Result:= TPath.IsExtendedPrefixed(FullPath)    { Checks whether a given path has an extended prefix. Call IsExtendedPrefixed to check whether the given path contains an extension prefix. Paths prefixed with \\?\ or \\?\UNC\ are Windows-specific and can be of very big lengths and not restricted to 255 characters (MAX_PATH). It is a common case today to manage paths longer than 255 characters. Prefixing those with \\?\ solves the problem. }
        OR (NOT TPath.IsExtendedPrefixed(FullPath) AND (Length(FullPath) < MaxLength));
  {$ENDIF MSWINDOWS}
 
@@ -625,8 +635,6 @@ begin
  Result:= (Length(UTF8Encode(FullPath)) < MaxLength)  // Check the length in bytes on POSIX
  {$ENDIF POSIX}
 end;
-
-
 
 
 
@@ -645,9 +653,7 @@ A: TOpenDialog will delegate the work to TFileOpenDialog if following conditions
     OnIncludeItem, OnClose and OnShow events are all not assigned.
 
 http://stackoverflow.com/questions/6236275/what-is-the-difference-between-the-new-tfileopendialog-and-the-old-topendialog
-
 ________________________________________________________________________________________________________________________
-
 
 TFileDialogOption
    fdoOverWritePrompt    = Prompt before overwriting an existing file of the same name when saving a file. This is a default for save dialogs.
@@ -675,7 +681,6 @@ TFileDialogOption
    fdoNoChangeDir        = Unused.
 _______________________________________________________________________________________________________________________}
 
-
 {$WARN SYMBOL_PLATFORM OFF}
 {$IFDEF MSWindows}
 { Keywords: FolderDialog, BrowseForFolder
@@ -686,6 +691,7 @@ ________________________________________________________________________________
     since Delphi 10/Seattle
     (it is effectively the same thing as the TFileOpenDialog approach, but with less boilerplate code)
     function SelectDirectory(const StartDirectory: string; out Directories: TArray<string>; Options: TSelectDirFileDlgOpts = []; const Title: string = ''; const FolderNameLabel: string = ''; const OkButtonLabel: string = ''): Boolean; overload;
+    https://stackoverflow.com/questions/68286754/where-is-the-modern-looking-selectdirectory-function
 }
 function SelectAFolder(VAR Folder: string; CONST Title: string = ''; CONST Options: TFileDialogOptions= [fdoPickFolders, fdoForceFileSystem, fdoPathMustExist, fdoDefaultNoMiniMode]): Boolean;    { intoarce true daca userul a dat OK si false daca userul a dat cancel } { Keywords: FolderDialog, BrowseForFolder}  { http://stackoverflow.com/questions/19501772/i-need-a-decent-open-folder-dialog#19501961 }
 VAR Dlg: TFileOpenDialog;
@@ -727,17 +733,24 @@ end;
 
    DefaultExt. Only for TSaveDialog. Extensions longer than three characters are not supported! Do not include the period (.) that divides the file name and its extension.
 -------------------------------------------------------------------------------------------------------------}
-function PromptToSaveFile(VAR FileName: string; Filter: string = ''; DefaultExt: string= ''; Title: string= ''; InitialDir: string = ''): Boolean;
+function PromptToSaveFile(VAR FileName: string; Filter: string = ''; DefaultExt: string= ''; Title: string= ''): Boolean;
+VAR InitialDir: string;
 begin
+ if FileName > '' then
+   if IsFolder(FileName)
+   then InitialDir:= FileName
+   else InitialDir:= ExtractFilePath(FileName);
+
  Result:= PromptForFileName(FileName, TRUE, Filter, DefaultExt, Title, InitialDir);
 end;
 
 
 { AllowMultiSelect cannot be true, because I return a single file name (cannot return a Tstringlist)  }
 //ToDo 1: Implement two variables: AppLastFile and AppLastFolder
-Function PromptToLoadFile(VAR FileName: string; Filter: string = ''; Title: string= ''; InitialDir: string = ''): Boolean;
+Function PromptToLoadFile(VAR FileName: string; Filter: string = ''; Title: string= ''): Boolean;
+VAR InitialDir: string;
 begin
- if InitialDir = '' then
+ if FileName > '' then
    if IsFolder(FileName)
    then InitialDir:= FileName
    else InitialDir:= ExtractFilePath(FileName);
@@ -769,15 +782,18 @@ begin
     else Dialog.Filter := Filter;
 
     if InitialDir= ''
-    then InitialDir:= AppDataFolder;
-    Dialog.InitialDir := InitialDir;
+    then Dialog.InitialDir:= AppData.AppDataFolder
+    else Dialog.InitialDir:= InitialDir;
 
     Dialog.FileName := FileName;
 
     Result := Dialog.Execute;
 
-    if Result
-    then FileName := Dialog.FileName;
+    if Result then
+      begin
+        FileName:= Dialog.FileName;
+        AppData.LastUsedFolder:= ExtractFilePath(FileName);
+      end;
   FINALLY
     FreeAndNil(Dialog);
   END;
@@ -805,11 +821,13 @@ begin
  Result.Title:= Caption;
 
  if FileName= ''
- then Result.InitialDir:= AppDataFolder
+ then Result.InitialDir:= AppData.AppDataFolder
  else Result.InitialDir:= ExtractFilePath(FileName);
 end;
 
-Function GetSaveDialog(FileName, Filter, DefaultExt: string; Caption: string= ''): TSaveDialog;     { Example: SaveDialog(ccCore.FilterTxt, 'csv');  }
+
+{ Example: SaveDialog(ccCore.FilterTxt, 'csv');  }
+Function GetSaveDialog(FileName, Filter, DefaultExt: string; Caption: string= ''): TSaveDialog;
 begin
  Result:= TSaveDialog.Create(NIL);
  Result.Filter:= Filter;
@@ -820,17 +838,9 @@ begin
  Result.Title:= Caption;
 
  if FileName= ''
- then Result.InitialDir:= AppDataFolder
+ then Result.InitialDir:= AppData.AppDataFolder
  else Result.InitialDir:= ExtractFilePath(FileName);
 end;
-
-
-
-
-
-
-
-
 
 
 
@@ -844,7 +854,7 @@ end;
    Works with UNC paths
    Correct invalid characters in a path. Path = path with filename, like: c:\my docs\MyFile.txt
 --------------------------------------------------------------------------------------------------}
-function CorrectFolder(CONST Folder: string; ReplaceWith: Char): string;                           { Old name: CorrectPath, RemoveInvalidPathChars }
+function CorrectFolder(CONST Folder: string; ReplaceWith: Char): string;                                                                                                     { Old name: CorrectPath, RemoveInvalidPathChars }
 VAR i: Integer;
 begin
  {TODO: Make it work with UNC paths! }
@@ -856,18 +866,10 @@ begin
 end;
 
 
-{function CorrectPath(CONST FullPath: string; ReplaceWith: Char): string;                           { like:  c:\my docs\my file.txt
-begin
- Result:= CorrectFolder(FullPath, ReplaceWith);
-end; }
-
-
-
-
 {
-   Returns FALSE if the path is too short or contains invalid characters.
-   Tells nothing about the existence of the folder.
-   Note: TPath.HasValidPathChars is bugged. https://stackoverflow.com/questions/45346525/why-tpath-hasvalidpathchars-accepts-as-valid-char-in-a-path/45346869#45346869
+  Returns FALSE if the path is too short or contains invalid characters.
+  Tells nothing about the existence of the folder.
+  Note: TPath.HasValidPathChars is bugged. https://stackoverflow.com/questions/45346525/why-tpath-hasvalidpathchars-accepts-as-valid-char-in-a-path/45346869#45346869
 }
 function PathNameIsValid(CONST Path: string): Boolean;
 VAR i: Integer;
@@ -881,8 +883,8 @@ end;
 
 
 { DOESN'T WORK WITH UNC PATHS !!!!!!!!!
-  Deprecated 'Use System.IOUtils.TPath.HasValidFileNameChars instead.' }
-  // HasValidFileNameChars only work with file names, not also with full paths
+  Deprecated 'Use System.IOUtils.TPath.HasValidFileNameChars instead.'
+  HasValidFileNameChars only work with file names, not also with full paths. }
 function FileNameIsValid_(CONST FileName: string): Boolean;
 VAR i, Spaces: Integer;
 begin
@@ -907,11 +909,10 @@ begin
 end;
 
 
-
 {$IFDEF MSWINDOWS}
 function GetPosAfterExtendedPrefix(const Path: string): Integer;
 CONST
-  FCExtendedPrefix: string = '\\?\'; // DO NOT LOCALIZE
+  FCExtendedPrefix: string = '\\?\';        // DO NOT LOCALIZE
   FCExtendedUNCPrefix: string = '\\?\UNC\'; // DO NOT LOCALIZE
 VAR
   Prefix: TPathPrefixType;
@@ -932,7 +933,8 @@ end;
 
 
 {$IFDEF MSWINDOWS}
-function PathHasValidColon(const Path: string): Boolean;   //copied from IOUtils.TPath.HasPathValidColon
+{ Copied from IOUtils.TPath.HasPathValidColon }
+function PathHasValidColon(const Path: string): Boolean;
 VAR
    StartIdx: Integer;
 begin
@@ -956,10 +958,11 @@ end;
 {--------------------------------------------------------------------------------------------------
    FOLDER EXISTENCE
 --------------------------------------------------------------------------------------------------}
+
+{  This corrects a bug in the original 'DirectoryExists' which returns true for a folder that does not exist.
+   The bug appears when the path ends with a SPACE. Exemple: 'c:\Program Files\ '
+   Works with UNC paths! }
 function DirectoryExists(CONST Directory: String; FollowLink: Boolean= TRUE): Boolean;
-{  This corrects a bug in the original 'DirectoryExists' which returns true for a folder that does not exist. 
-    The bug appears when the path ends with a SPACE. Exemple: 'c:\Program Files\ '
- Works with UNC paths! }
 begin
  Result:= (LastChar(Directory)<> ' ')                                                              { Don't accept Space at the end of a path (after the backslash) }
       AND System.SysUtils.DirectoryExists(Directory, FollowLink);
@@ -971,18 +974,18 @@ begin
  Result:= DirectoryExists(Path);
  if NOT Result then
  if Path= ''
- then Mesaj('DirectoryExistMsg: No folder specified!')
+ then MesajError('DirectoryExistMsg: No folder specified!')
  else
-  if Pos(':', Path)< 1                                                                             { verific daca userul a dat o cale completa ca c:\xxx }
+  if Pos(':', Path)< 1                                                                             { check if the user has given a full path as c:\xxx }
   then MesajError('A relative path was provided instead of a full path!'+ CRLF+ Path)
   else MesajError('Folder does not exist:'+ CRLF+ Path);
 end;
 
 
-{ Inlocuitor pt System.SysUtils.ForceDirectories which has a problem when it is called with an empty string. Doing so causes ForceDirectories to raise an exception" }
+{ Replacement for System.SysUtils.ForceDirectories which has a problem when it is called with an empty string.
+  Doing so causes ForceDirectories to raise an exception.
+  It won't work with network drives }
 function ForceDirectoriesB_old(FullPath: string): Boolean;
-{ DEL
-  Problems: it won't work with network drives }
 begin
   { Check empty }
   if (Trim(FullPath) = '')
@@ -992,18 +995,18 @@ begin
   if NOT PathNameIsValid(FullPath)
   then EXIT(FALSE);
 
-  FullPath:= TPath.GetFullPath(FullPath);                                                          { Returns the absolute path for a given path. GetFullPath returns the full, absolute path for a given relative path. If the given path if absolute, GetFullPath simply returns it; otherwise, GetFullPath uses the current working directory as a root for the given Path.  }
+  FullPath:= TPath.GetFullPath(FullPath);                { Returns the absolute path for a given path. GetFullPath returns the full, absolute path for a given relative path. If the given path if absolute, GetFullPath simply returns it; otherwise, GetFullPath uses the current working directory as a root for the given Path.  }
 
   { Check min length }
   if (Length(FullPath) < 4)
-  then EXIT(FALSE);                                                                                { Avoid 'xyz:\' problem. The length of the path shoulf be at leats 4 characters, for example: 'c:\a'. I can do this check ONLY AFTER GetFullPath }
+  then EXIT(FALSE);                                      { Avoid 'xyz:\' problem. The length of the path shoulf be at leats 4 characters, for example: 'c:\a'. I can do this check ONLY AFTER GetFullPath }
 
   { Check max length }
   if NOT CheckPathLength(FullPath)
   then EXIT(FALSE);
 
   { Check drive }
-  if NOT TPath.DriveExists(TPath.GetPathRoot(FullPath))    {  <------- this it won't work with network drives }
+  if NOT TPath.DriveExists(TPath.GetPathRoot(FullPath))  {  <------- this won't work with network drives }
   then EXIT(FALSE);
 
   { Already exists? }
@@ -1022,8 +1025,8 @@ begin
 end;
 
 
-
-function ForceDirectories(CONST FullPath: string): Integer;    // Works with UNC paths
+// Works with UNC paths
+function ForceDirectories(CONST FullPath: string): Integer;
 {RETURNS:
   -1 = Error creating the directory
    0 = Directory already exists
@@ -1039,21 +1042,13 @@ begin
 end;
 
 
-function ForceDirectoriesMsg(CONST FullPath: string): boolean;                                     { Shows a message if the folder cannot be created. }
+{ Shows an error message if the folder cannot be created. }
+function ForceDirectoriesMsg(CONST FullPath: string): boolean;
 begin
  Result:= ForceDirectories(FullPath) >= 0;
  if NOT Result
  then MesajError('Cannot create folder: '+ FullPath+ CRLF+ 'Probably you are trying to write to a folder to which you don''t have write permissions, or, the folder you want to create is invalid.');
 end;
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1068,7 +1063,7 @@ end;
 function IsVideo(CONST AGraphFile: string): Boolean;
 VAR sExtension: string;
 begin
- sExtension:= ExtractFileExtIns(AGraphFile);
+ sExtension:= ExtractFileExtUp(AGraphFile);
  Result:=
     (sExtension= '.AVI')  OR
     (sExtension= '.MKV')  OR
@@ -1098,7 +1093,7 @@ end;
 function IsVideoGeneric(CONST AGraphFile: string): Boolean;
 VAR sExtension: string;
 begin
- sExtension:= ExtractFileExtIns(AGraphFile);
+ sExtension:= ExtractFileExtUp(AGraphFile);
  Result:=
     { GLOBAL }
     (sExtension= '.AVI')  OR
@@ -1152,14 +1147,14 @@ end;
 
 function IsGIF(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.GIF';
+ Result:= ExtractFileExtUp(AGraphFile)= '.GIF';
 end;
 
 
 function IsJpg(CONST AGraphFile: string): Boolean;
 VAR sExtension: string;
 begin
- sExtension:= ExtractFileExtIns(AGraphFile);
+ sExtension:= ExtractFileExtUp(AGraphFile);
  Result:= (sExtension= '.JPG') OR (sExtension= '.JPEG') OR (sExtension= '.JPE') OR (sExtension= '.JFIF') OR (sExtension= '.JP');
 end;
 
@@ -1167,51 +1162,51 @@ end;
 function IsJp2(CONST AGraphFile: string): Boolean;
 VAR sExtension: string;
 begin
- sExtension:= ExtractFileExtIns(AGraphFile);
+ sExtension:= ExtractFileExtUp(AGraphFile);
  Result:= (sExtension= '.J2K') OR (sExtension= '.JPC') OR (sExtension= '.JP2')
 end;
 
 
-
 function IsBMP(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.BMP';
+ Result:= ExtractFileExtUp(AGraphFile)= '.BMP';
 end;
 
 
 function IsWB1(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.WB1';
+ Result:= ExtractFileExtUp(AGraphFile)= '.WB1';
 end;
+
 
 function IsWBC(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.WBC';
+ Result:= ExtractFileExtUp(AGraphFile)= '.WBC';
 end;
+
 
 function IsPNG(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.PNG';
+ Result:= ExtractFileExtUp(AGraphFile)= '.PNG';
 end;
+
 
 function IsICO(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.ICO';
+ Result:= ExtractFileExtUp(AGraphFile)= '.ICO';
 end;
+
 
 function IsEMF(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.EMF';
+ Result:= ExtractFileExtUp(AGraphFile)= '.EMF';
 end;
+
 
 function IsWMF(CONST AGraphFile: string): Boolean;
 begin
- Result:= ExtractFileExtIns(AGraphFile)= '.WMF';
+ Result:= ExtractFileExtUp(AGraphFile)= '.WMF';
 end;
-
-
-
-
 
 
 function IsImage(CONST AGraphFile: string): Boolean;
@@ -1226,7 +1221,8 @@ begin
 end;
 
 
-function IsImage2(CONST AGraphFile: string): Boolean;                                              { returns TRUE if the file has a known extension and it can be converted to BMP }
+{ Returns TRUE if the file has a known extension and it can be converted to BMP }
+function IsImage2Bmp(CONST AGraphFile: string): Boolean;
 begin
  Result:=
     IsImage(AGraphFile)
@@ -1239,41 +1235,54 @@ end;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function IsExec(CONST FileName: string) : Boolean;
+begin
+ Result:=
+    (ExtractFileExtUp(FileName)= '.BAT') OR
+    (ExtractFileExtUp(FileName)= '.CMD') OR
+    (ExtractFileExtUp(FileName)= '.COM') OR
+    (ExtractFileExtUp(FileName)= '.CPL') OR
+    (ExtractFileExtUp(FileName)= '.DLL') OR
+    (ExtractFileExtUp(FileName)= '.EXE') OR
+    (ExtractFileExtUp(FileName)= '.JAR') OR
+    (ExtractFileExtUp(FileName)= '.MSI') OR
+    (ExtractFileExtUp(FileName)= '.MSP') OR
+    (ExtractFileExtUp(FileName)= '.PIF') OR
+    (ExtractFileExtUp(FileName)= '.PS1') OR   // A Windows PowerShell script. Runs PowerShell commands in the order specified in the file.
+    (ExtractFileExtUp(FileName)= '.PS2') OR   // A Windows PowerShell script. Runs PowerShell commands in the order specified in the file
+    (ExtractFileExtUp(FileName)= '.SCR') OR
+    (ExtractFileExtUp(FileName)= '.VBE') OR
+    (ExtractFileExtUp(FileName)= '.WS')  OR
+    (ExtractFileExtUp(FileName)= '.WSF') OR
+    (ExtractFileExtUp(FileName)= '.WSC') OR   //Windows Script Component and Windows Script Host control files. Used along with with Windows Script files.
+    (ExtractFileExtUp(FileName)= '.WSH') OR   //Windows Script Component and Windows Script Host control files. Used along with with Windows Script files.
+    (ExtractFileExtUp(FileName)= '.VBS');
+end;
 
 
 function IsPas(CONST FileName: string) : Boolean;
 begin
- Result:= ExtractFileExtIns(FileName)= '.PAS';
+ Result:= ExtractFileExtUp(FileName)= '.PAS';
 end;
+
 
 function IsDfm(CONST FileName: string) : Boolean;
 begin
- Result:= ExtractFileExtIns(FileName)= '.DFM';
+ Result:= ExtractFileExtUp(FileName)= '.DFM';
 end;
+
 
 function IsDpr(CONST FileName: string) : Boolean;
 begin
- Result:= ExtractFileExtIns(FileName)= '.DPR';
+ Result:= ExtractFileExtUp(FileName)= '.DPR';
 end;
+
 
 function IsDpk(CONST FileName: string) : Boolean;
 begin
- Result:= ExtractFileExtIns(FileName)= '.DPK';
+ Result:= ExtractFileExtUp(FileName)= '.DPK';
 end;
+
 
 function IsDelphi(CONST FileName: string) : Boolean;
 begin
@@ -1282,29 +1291,6 @@ begin
        OR IsDpr(FileName);
 end;
 
-function IsExec(CONST FileName: string) : Boolean;
-begin
- Result:=
-    (ExtractFileExtIns(FileName)= '.BAT') OR
-    (ExtractFileExtIns(FileName)= '.CMD') OR
-    (ExtractFileExtIns(FileName)= '.COM') OR
-    (ExtractFileExtIns(FileName)= '.CPL') OR
-    (ExtractFileExtIns(FileName)= '.DLL') OR
-    (ExtractFileExtIns(FileName)= '.EXE') OR
-    (ExtractFileExtIns(FileName)= '.JAR') OR
-    (ExtractFileExtIns(FileName)= '.MSI') OR
-    (ExtractFileExtIns(FileName)= '.MSP') OR
-    (ExtractFileExtIns(FileName)= '.PIF') OR
-    (ExtractFileExtIns(FileName)= '.PS1') OR   // A Windows PowerShell script. Runs PowerShell commands in the order specified in the file.
-    (ExtractFileExtIns(FileName)= '.PS2') OR   // A Windows PowerShell script. Runs PowerShell commands in the order specified in the file
-    (ExtractFileExtIns(FileName)= '.SCR') OR
-    (ExtractFileExtIns(FileName)= '.VBE') OR
-    (ExtractFileExtIns(FileName)= '.WS')  OR
-    (ExtractFileExtIns(FileName)= '.WSC') OR   //Windows Script Component and Windows Script Host control files. Used along with with Windows Script files.
-    (ExtractFileExtIns(FileName)= '.WSF') OR
-    (ExtractFileExtIns(FileName)= '.WSH') OR   //Windows Script Component and Windows Script Host control files. Used along with with Windows Script files.
-    (ExtractFileExtIns(FileName)= '.VBS');
-end;
 
 
 
@@ -1312,14 +1298,20 @@ end;
 {--------------------------------------------------------------------------------------------------
    FILE
 --------------------------------------------------------------------------------------------------}
-function ChangeFilePath(CONST FullFileName, NewPath: string): string; //ok  Works with UNC paths   { Example:     ChangeFilePath (c:\test\1.txt, d:\data) will return 'd:\data\1.txt' }
+
+{ Example: ChangeFilePath (c:\test\1.txt, d:\data) will return 'd:\data\1.txt'
+  Works with UNC paths. }
+function ChangeFilePath(CONST FullFileName, NewPath: string): string;
 begin
  Result:= ExtractFileName(FullFileName);
  Result:= Trail(NewPath)+ Result;
 end;
 
 
-function AppendBeforeName(CONST FullPath, ApendedText: string): string;   // Works with UNC paths                 { Adauga un sir intre nume si extensie. Exemplu: daca adaug sirul ' backup' la fisierul 'Shell32.DLL'   ->  'Shell32 backup.DLL' }
+{ Inserts a string between name and ext.
+  Ex: AppendBeforeName('Shell32.DLL', 'Backup ')  -->  'Backup Shell32.DLL'
+  Works with UNC paths. }
+function AppendBeforeName(CONST FullPath, ApendedText: string): string;
 begin
  Result:= ExtractFilePath (FullPath)+
           ApendedText+
@@ -1347,26 +1339,12 @@ begin
  else
    if AcceptInvalidPaths
    then Result:= ''
-   else RAISE exception.Create('The path is invalid!' + CRLF+ FullPath);    { GetDirectoryName shows an error message if the path is empty but the debuger won't stop. So I force the stop. }
+   else RAISE Exception.Create('The path is invalid!' + CRLF+ FullPath);    { GetDirectoryName shows an error message if the path is empty but the debuger won't stop. So I force the stop. }
 end;
 
 
-{ Extrage numele unui fisier.
-  ?Works with UNC paths? Probalby yes
-function ExtractOnlyNameOnly(CONST FileName: string): string;
-begin
- if Pos('.', FileName)< 1
- then Result:= FileName
- else
-   begin
-    Result:= ExtractFileName(FileName);
-    Result:= CopyTo(Result, 1, LastPos('.', Result)-1); todo: use Pos instead of LastPos !!!!!!!!!
-  end;
-end;  }
-
-
-{ FILES WITH MULTI EXTENSIONS }
-{ Works also when the file has multiple extensions (nume+extensie+extensie). It removes only the last ext }
+{ FILES WITH MULTI EXTENSIONS
+  Works also when the file has multiple extensions (nume+extensie+extensie). It removes only the last ext. }
 function ExtractOnlyName(CONST FileName: string): string;
 VAR
    iPos: integer;
@@ -1379,67 +1357,21 @@ begin
  else Result:= CopyTo(s, 1, iPos-1);
 end;
 
-(*Lazarus way:
-function ExtractFileNameOnly(const AFilename: string): string;
-var
-  StartPos: Integer;
-  ExtPos: Integer;
-begin
-  StartPos:=length(AFilename)+1;
-  while (StartPos>1)
-  and not (AFilename[StartPos-1] in AllowDirectorySeparators)
-  {$IF defined(Windows) or defined(HASAMIGA)}and (AFilename[StartPos-1]<>':'){$ENDIF}
-  do
-    dec(StartPos);
-  ExtPos:=length(AFilename);
-  while (ExtPos>=StartPos) and (AFilename[ExtPos]<>'.') do
-    dec(ExtPos);
-  if (ExtPos<StartPos) then ExtPos:=length(AFilename)+1;
-  Result:=copy(AFilename,StartPos,ExtPos-StartPos);
-end;
-*)
 
-
-
-{ Extrage numele unui fisier. Daca numele e de tipul nume+extensie+extensie, only the last extension will be eliminated
-  Works with UNC paths }
+{ Removed the last file extension.
+  If the name is of type name +extension +extension, only the last extension will be removed.
+  Works with UNC paths. }
 function RemoveLastExtension(CONST FileName: string): string;
 begin
  Result:= Tpath.GetFileNameWithoutExtension(FileName);
 end;
 
 
-function RemoveLastExtension_(CONST FileName: string): string;      // Works with UNC paths
-var sLength: Integer;
+{ Case insensitive version of ExtractFileExt }
+function ExtractFileExtUp(CONST FileName: string): string;      // Old name: ExtractFileExtIns
 begin
- if Pos('.', FileName)< 1                                                                          { It may happen that the user provides a file name without extension (I personally use this alot) }
- then Result:= FileName
- else
-   begin
-    sLength:= Length(ExtractFileName(FileName)) - Length(ExtractFileExt(FileName));
-    Result := system.COPY(ExtractFileName(FileName), 1, sLength);
-  end;
+ Result:= UpperCase(ExtractFileExt(FileName));
 end;
-
-{ EXEAMPLE 2
-function  ExtractOnlyName2(FileName: string): string;
-VAR Ext: string;
-begin
-  Result:= ExtractFileName(FileName);
-     Ext:= ExtractFileExt(FileName);
-  if Ext <> '' then
-  Delete(Result, PosFast(Ext, Result), Length(Ext));   }
-
-
-function ExtractFileExtIns(CONST FileName: string): string;
-begin
- Result:= ExtractFileExt(UpperCase(FileName));
-end;
-
-
-
-
-
 
 
 { Returns truncated path, relative to 'RelativeTo'.
@@ -1452,8 +1384,8 @@ begin
 end;
 
 
-
-function ExtractDrive(CONST FullPath: string): string;    { C:\MyDocuments\1.doc  ->  c }
+{ Example: C:\MyDocuments\1.doc  ->  C }
+function ExtractDrive(CONST FullPath: string): string;
 VAR i: Integer;
 begin
  I:= Pos(':', FullPath);
@@ -1463,7 +1395,8 @@ begin
 end;
 
 
-function RemoveDrive(CONST FullPath: string): string;    { C:\MyDocuments\1.doc  ->  MyDocuments\1.doc }
+{ Example: C:\MyDocuments\1.doc  ->  MyDocuments\1.doc }
+function RemoveDrive(CONST FullPath: string): string;
 VAR i: Integer;
 begin
  I:= Pos(':', FullPath);
@@ -1473,15 +1406,18 @@ begin
 end;
 
 
-{ Receives the full path of a file. Replaces ONLY its name (keeps the folder and the extension). Exemplu: C:\test\Name.dll -> C:\test\NewName.dll }
-function ReplaceOnlyName(CONST FileName, newName: string): string;                                  // Works with UNC paths
+{ Receives the full path of a file. Replaces ONLY its name (keeps the folder and the extension).
+  Ex: C:\test\Name.dll -> C:\test\NewName.dll
+  Works with UNC paths }
+function ReplaceOnlyName(CONST FileName, newName: string): string;
 begin
  Result:= ExtractFilePath (FileName)+ newName+ ExtractFileExt  (FileName);
 end;
 
 
-{ Adauga un sir intre nume si extensie. Exemplu: daca adaug sirul ' backup' la fisierul 'c:\1\Shell32.DLL'   ->  'c:\1\Shell32 backup.DLL' }
-function AppendToFileName(CONST FileName, ApendedText: string): string;            // Works with UNC paths
+{ Adauga un sir intre nume si extensie. Exemplu: daca adaug sirul ' backup' la fisierul 'c:\1\Shell32.DLL' ->  'c:\1\Shell32 backup.DLL'
+  Works with UNC paths }
+function AppendToFileName(CONST FileName, ApendedText: string): string;
 begin
  Result:= ExtractFilePath (FileName)+
           ExtractOnlyName (FileName)+ ApendedText+
@@ -1489,16 +1425,8 @@ begin
 end;
 
 
-
-
-
-
-
-
-
 {--------------------------------------------------------------------------------------------------
    INCREMENT FOLDER NAME
-
      Adds a number at the end of the path.
      If a folder with the same name already exists, it keeps incrementing the number until a unique (unalocated) folder name is found
      NOTE: when used with an UNC path, if the drive is not online, the result will be indentic with the input (no change, no increment)
@@ -1510,17 +1438,15 @@ begin
   Result:= Trail(RootPath) + FolderName;
   i := 0;
   WHILE DirectoryExists(Result) DO
-   begin                                                                                                                { check if dir exists and if so add a number and try again }
+   begin      { check if dir exists and if so add a number and try again }
     inc(i);
     Result:= Trail( Trail(RootPath) + FolderName + ' ' + IntToStr(i) );
    end;
 end;
 
 
-
 {--------------------------------------------------------------------------------------------------
    INCREMENT FILE NAME
-
      Increments the number contained in the file name (at its end).
      If the file does not contain a number, a 1 is automatically added.
 --------------------------------------------------------------------------------------------------}
@@ -1532,7 +1458,8 @@ begin
 end;
 
 
-function IncrementFileNameEx (CONST FileName: string; StartAt, NumberLength: Integer): string;                { Same as IncrementFileName but it automatically adds a number if the file doesn't already ends with a number. //ok  Works with UNC paths }
+{ Same as IncrementFileName but it automatically adds a number if the file doesn't already ends with a number. //ok  Works with UNC paths }
+function IncrementFileNameEx (CONST FileName: string; StartAt, NumberLength: Integer): string;
 begin
  if FileEndsInNumber(FileName)
  then Result:= IncrementFileName(FileName)
@@ -1563,7 +1490,7 @@ begin
  if DestFolder<> ''
  then ForceDirectoriesMsg(DestFolder);
 
- REPEAT                                                                                                       { Increment file name until a file with same name does not exist anymore }
+ REPEAT    { Increment file name until a file with same name does not exist anymore }
    Result:= IncrementFileNameEx(Result, 1, 3);
  UNTIL NOT FileExists(Result);
 
@@ -1581,7 +1508,8 @@ begin
 end;
 
 
-function BackupFileDate(CONST FileName, DestFolder: string; TimeStamp: Boolean= TRUE; Overwrite: Boolean = TRUE): Boolean;                      { Create a copy of the specified file in the same folder.  }  { Old name:  FileMakeBackup }
+{ Create a copy of the specified file in the same folder. }  { Old name:  FileMakeBackup }
+function BackupFileDate(CONST FileName, DestFolder: string; TimeStamp: Boolean= TRUE; Overwrite: Boolean = TRUE): Boolean;
 VAR BackupName: string;
 begin
  BackupName:= Trail(DestFolder)+ ExtractOnlyName(FileName);
@@ -1594,7 +1522,8 @@ begin
 end;
 
 
-function BackupFileBak(CONST FileName: string): Boolean; { Create a copy of this file, and appends as file extension. Ex: File.txt -> File.txt.bak }
+{ Create a copy of this file, and appends as file extension. Ex: File.txt -> File.txt.bak }
+function BackupFileBak(CONST FileName: string): Boolean;
 begin
  Result:= FileCopyTo(FileName, FileName+'.bak', TRUE);
 end;
@@ -1604,13 +1533,10 @@ end;
 
 
 
-
-
-
-
-
-
-function FileEndsInNumber(CONST FileName: string): Boolean;                                                   { Returns true is the filename ends with a number. Example: MyFile02.txt returns TRUE. Works with UNC paths}
+{ Returns true is the filename ends with a number.
+  Example: MyFile02.txt returns TRUE.
+  Works with UNC paths. }
+function FileEndsInNumber(CONST FileName: string): Boolean;
 VAR ShortName: string;
 begin
   ShortName:= ExtractOnlyName(FileName);
@@ -1618,12 +1544,15 @@ begin
 end;
 
 
-function AppendNumber2Filename(CONST FileName: string; StartAt, NumberLength: Integer): string;               { Same as above but the user can specify how long the number should be. For example is sNumber is 1 and ForeceLength is 3 then the result will be 001.  Works with UNC paths }
+{ Same as above but the user can specify how long the number should be.
+  For example if sNumber is 1 and ForeceLength is 3, then the result will be 001.
+  Works with UNC paths }
+function AppendNumber2Filename(CONST FileName: string; StartAt, NumberLength: Integer): string;
 VAR sPath, sExt: string;
 begin
  sPath:= ExtractFilePath(FileName);
  sExt := ExtractFileExt (FileName);
- Result:= sPath+ ExtractOnlyName(FileName)+ LeadingZeros(IntToStr(StartAt), NumberLength)+ sExt;
+ Result:= sPath+ ExtractOnlyName(FileName)+ '_'+LeadingZeros(IntToStr(StartAt), NumberLength)+ sExt;
 end;
 
 
@@ -1638,7 +1567,9 @@ end;
 {--------------------------------------------------------------------------------------------------
     VALIDATE FILE NAME
 --------------------------------------------------------------------------------------------------}
-function CorrectFilename(CONST FileName: string; ReplaceWith: Char= ' '): string;   { Correct invalid characters in a filename. FileName = File name without path.   UNC test does not apply to this function because the function only accepts filenames which are not unc }
+{ Correct invalid characters in a filename. FileName = File name without path.
+  UNC test does not apply to this function because the function only accepts filenames which are not UNC }
+function CorrectFilename(CONST FileName: string; ReplaceWith: Char= ' '): string;
 VAR i: Integer;
 begin
  Result:= FileName;
@@ -1653,9 +1584,10 @@ end;
 
 
 {$WARN SYMBOL_PLATFORM OFF}
-function FindFirstFile(CONST aFolder, Ext: string): string;                         { Find first file in the specified folder }  // Works with UNC paths
+{ Find first file in the specified folder }  // Works with UNC paths
+function FindFirstFile(CONST aFolder, Ext: string): string;
 const
-   //faCompressed         = $0800;
+ //faCompressed         = $0800;
    faNotContentIndexed  = $2000;
 VAR
    SR: TSearchRec;
@@ -1670,8 +1602,8 @@ end;
 {$WARN SYMBOL_PLATFORM ON}
 
 
-
-function FileExistsMsg(CONST FileName: string): Boolean;                            { File Exists }
+ { File Exists }
+function FileExistsMsg(CONST FileName: string): Boolean;
 begin
  Result:= FileExists(FileName);
  if NOT Result then
@@ -1680,23 +1612,6 @@ begin
  else MesajError('File does not exist!'+ CRLF+ FileName);
 end;
 
-
-(*
-function Convert2LongFileName(const ShortName: string): string;                     { converteste din short filename (DOS 8.3) la fully expanded path (Windows) }
-begin
- if (OS_WinProduct= osWin95) OR (OS_WinProduct= osWinNT4)
- then Result:= ShortName                                                                           { GetLongPathName nu e disponibil sub Win95 si WinNT }
- else
-  begin
-   {OLD GetLongPathName(PChar(ShortName), OutStr, MAXPATH);  }
-
-  NEW (NOT working)
-  SetLength(Result, GetLongPathName(PChar(ShortName), nil, 0));
-  SetLength(Result, GetLongPathName(PChar(ShortName), PChar(Result), length(Result)));
-  end;
-
- https://www.google.es/search?num=30&hl=en&newwindow=1&safe=off&client=firefox-a&hs=rUa&rls=org.mozilla%3Aen-US%3Aofficial&q=delphi+unicode+%22GetLongPathName%22&oq=delphi+unicode+%22GetLongPathName%22&gs_l=serp.3...575319.575929.0.576218.2.2.0.0.0.0.218.294.1j0j1.2.0.les%3B..0.0...1c.1.O9eYZwZIQs4
-end; *)
 
 
 
@@ -1707,9 +1622,9 @@ end; *)
 
 
 {--------------------------------------------------------------------------------------------------
-                                 FILE TIME
+   FILE TIME
 --------------------------------------------------------------------------------------------------}
-function FileTimeToDateTimeStr(FTime: TFileTime; DFormat, TFormat: string): string;  //70
+function FileTimeToDateTimeStr(FTime: TFileTime; DFormat, TFormat: string): string;
 var
   SysTime       : TSystemTime;
   DateTime      : TDateTime;
@@ -1723,11 +1638,11 @@ end;
 
 
 {$WARN SYMBOL_PLATFORM OFF}
-function FileAge(CONST FileName: string): TDateTime;
 { REPLACEMENT
     for System.SysUtils.FileAge which is not working with 'c:\pagefile.sys'.
     For details dee: http://stackoverflow.com/questions/3825077/fileage-is-not-working-with-c-pagefile-sys
 }
+function FileAge(CONST FileName: string): TDateTime;
 VAR
   LocalFileTime     : TFileTime;
   SystemTime        : TSystemTime;
@@ -1739,8 +1654,8 @@ begin
      FileTimeToLocalFileTime(SRec.FindData.ftLastWriteTime, LocalFileTime);
      FileTimeToSystemTime(LocalFileTime, SystemTime);
      Result := SystemTimeToDateTime(SystemTime);
-   except  //todo 1: trap only specific exceptions
-     on e: exception do
+   EXCEPT   //todo 1: trap only specific exceptions
+     on e: Exception do
        Result:= -1;
    END;
  FINALLY
@@ -1751,19 +1666,21 @@ end;
 
 
 
-{ The time must be at the end of the file name. Example: 'MyPicture 20-00.jpg'. Returns 0 if the time could not be extracted. }
+{ The time must be at the end of the file name.
+  Example: 'MyPicture 20-00.jpg'.
+  Returns 0 if the time could not be extracted. }
 function ExtractTimeFromFileName(FileName: string): TTime;
 VAR s: string;
 begin
  s:= ExtractOnlyName(FileName);
- if Length(s) <= 5 then EXIT(-1);                                                                  { File name patter is invalid (too short) }
+ if Length(s) <= 5 then EXIT(-1);    { File name patter is invalid (too short) }
 
  s:= CopyTo(s, Length(s)- 5, MaxInt);
  ReplaceChar(s, '-', ':');
  TRY
   FormatSettings.TimeSeparator:= ':';
   Result:= StrToTimeDef(s, 0);   { Don't fail if the string is invalid. Bionix relies on this! }
- except //todo 1: trap only specific exceptions
+ EXCEPT //todo 1: trap only specific exceptions
   Result:= -1;
  END;
 end;
@@ -1781,7 +1698,8 @@ begin
 end;
 
 
-function DateTimeToStr_IO(CONST DateTime: TDateTime): string;                                      { Used to conver Date/Time to a string that is safe to use in a path. For example, instead of '2013/01/01' 15:32 it will return '2013-01-01 15,32' }
+{ Used to conver Date/Time to a string that is safe to use in a path. For example, instead of '2013/01/01' 15:32 it will return '2013-01-01 15,32' }
+function DateTimeToStr_IO(CONST DateTime: TDateTime): string;
 begin
  Result:= FormatDateTime('YYYY-MM-DD hh.mm.ss', DateTime);                                           // http://www.delphibasics.co.uk/RTL.asp?Name=FormatDateTime
 end;
@@ -1797,8 +1715,9 @@ end;
 
 
 {--------------------------------------------------------------------------------------------------
-                                 GET FILE SIZE
+   GET FILE SIZE
 --------------------------------------------------------------------------------------------------}
+{ Returns the size of all files in a folder }
 function GetFolderSize(aFolder: string; FileType: string= '*.*'; DigSubdirectories: Boolean= TRUE): Int64;
 VAR
    i: Integer;
@@ -1847,7 +1766,8 @@ begin
 end;
 
 
-function GetFileSizeFormat(CONST sFilename: string): string;                                       { Same as GetFileSize but returns the size in b/kb/mb/etc }
+{ Same as GetFileSize but returns the size in b/kb/mb/etc }
+function GetFileSizeFormat(CONST sFilename: string): string;
 begin
  if FileExists(sFilename)
  then Result:= ccCore.FormatBytes(GetFileSize(sFilename), 2)
@@ -1860,9 +1780,12 @@ end;
 
 
 
+{--------------------------------------------------------------------------------------------------
+   COMPARE
+--------------------------------------------------------------------------------------------------}
 
-{ FILE - COMPARE }
-function CompareStreams(A, B: TStream; BufferSize: Integer = 4096): Boolean;  // taken from jcl
+{ Compare two files }
+function CompareStreams(A, B: TStream; BufferSize: Integer = 4096): Boolean;  // Source: jcl
 var
   BufferA, BufferB: array of Byte;
   ByteCountA, ByteCountB: Integer;
@@ -1887,6 +1810,7 @@ begin
 end;
 
 
+{ Compare two files }
 function CompareFiles(CONST FileA, FileB: TFileName; BufferSize: Integer = 4096): Boolean;
 VAR A, B: TStream;
 begin
@@ -1904,60 +1828,9 @@ begin
 end;
 
 
-
-
-
-
-
-procedure SetCompressionAtr(const FileName: string; const CompressionFormat: USHORT= 1);  // http://stackoverflow.com/questions/7002575/how-can-i-set-a-files-compression-attribute-in-delphi
-CONST
-  FSCTL_SET_COMPRESSION = $9C040;
-  {
-  COMPRESSION_FORMAT_NONE = 0;
-  COMPRESSION_FORMAT_DEFAULT = 1;
-  COMPRESSION_FORMAT_LZNT1 = 2; }
-VAR
-   Handle: THandle;
-   Flags: DWORD;
-   BytesReturned: DWORD;
-begin
-  if DirectoryExists(FileName)
-  then Flags := FILE_FLAG_BACKUP_SEMANTICS
-  else
-    if FileExists(FileName)
-    then Flags := 0
-    else raise exception.CreateFmt('%s does not exist', [FileName]);
-
-  Handle := CreateFile(PChar(FileName), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING, Flags, 0);
-  if Handle=0
-  then RaiseLastOSError;
-
-  if not DeviceIoControl(Handle, FSCTL_SET_COMPRESSION, @CompressionFormat, SizeOf(Comp), nil, 0, BytesReturned, nil) then
-   begin
-    CloseHandle(Handle);
-    RaiseLastOSError;
-   end;
-
-  CloseHandle(Handle);
-end;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+{Set the 'c' attibute on the specified file.
+  As a result, the file will be compressed.
+  Source: http://stackoverflow.com/questions/7002575/how-can-i-set-a-files-compression-attribute-in-delphi }
 
 
 
@@ -1965,9 +1838,12 @@ end;
 
 
 {--------------------------------------------------------------------------------------------------
-                                 ACCESS
---------------------------------------------------------------------------------------------------}    { also see IsDiskWriteProtected }
-function ShowMsg_CannotWriteTo(CONST sPath: string): string;    { old name: ReturnCannotWriteTo }
+  FILE ACCESS
+  Also see: IsDiskWriteProtected
+--------------------------------------------------------------------------------------------------}
+
+{ Formats a error message complaining that we cannot write to a file. }
+function ShowMsg_CannotWriteTo(CONST sPath: string): string;                                                  { old name: ReturnCannotWriteTo }
 begin
  Result:= 'Cannot write to "'+ sPath+ '"'
            +LBRK+ 'Possilbe cause:'
@@ -1983,8 +1859,8 @@ begin
 end;
 
 
-
-function FileIsLockedRW(FileName: string): Boolean;                  { Returns true if the file cannot be open for reading and writing } { old name: FileInUse }
+{ Returns true if the file cannot be open for reading and writing }                                           { old name: FileInUse }
+function FileIsLockedRW(FileName: string): Boolean;
 VAR hFileRes: HFILE;
 begin
  if NOT FileExists(FileName) then EXIT(FALSE);                       { If files doesn't exist it cannot be locked! }
@@ -2007,44 +1883,45 @@ begin
 end;
 
 
-
-function TestWriteAccessMsg(CONST FileOrFolder: string): Boolean;    { USER HAS WRITE ACCESS? }
+{ Do we have write access to this file/folder? }
+function TestWriteAccessMsg(CONST FileOrFolder: string): Boolean;
 begin
  Result:= TestWriteAccess(FileOrFolder);
  if NOT Result
- then Mesaj(ShowMsg_CannotWriteTo(FileOrFolder));
+ then MesajWarning(ShowMsg_CannotWriteTo(FileOrFolder));
 end;
 
 
-function TestWriteAccess(FileOrFolder: string): Boolean;             { Returns true if it can write that file to disk. ATTENTION it will overwrite the file if it already exists ! }
+{ Returns true if it can write that file to disk. ATTENTION it will overwrite the file if it already exists ! }
+function TestWriteAccess(FileOrFolder: string): Boolean;
 VAR myFile: FILE;
-    wOldErrorMode: Word;                                             { Stop Windows from Displaying Critical Error Messages:      http://delphi.about.com/cs/adptips2002/a/bltip0302_3.htm }
+    wOldErrorMode: Word;                                                 { Stop Windows from Displaying Critical Error Messages:   http://delphi.about.com/cs/adptips2002/a/bltip0302_3.htm }
     CreateNew: Boolean;
 begin
  Result:= DirectoryExists( ExtractFilePath(FileOrFolder) );
  {       AICI AR TREBUIE SA FORTEZ DIRECTORUL DACA DRIVE-UL E READY }
  if NOT Result then Exit;
 
- wOldErrorMode:= SetErrorMode( SEM_FAILCRITICALERRORS );                                           { tell windows to ignore critical errors and save current error mode }
+ wOldErrorMode:= SetErrorMode( SEM_FAILCRITICALERRORS );                 { tell windows to ignore critical errors and save current error mode }
  TRY
   if IsFolder(FileOrFolder)
   then FileOrFolder:= Trail(FileOrFolder)+ 'WriteAccessTest.DeleteMe';
 
   Assign(myFile, FileOrFolder);
-  FileMode:= fmOpenReadWrite;                                                                      { Read/Write access }
+  FileMode:= fmOpenReadWrite;                                            { Read/Write access }
   CreateNew:= NOT FileExists(FileOrFolder);
 
-  if CreateNew                                                                                     { The file does not exist, I need to create one }
+  if CreateNew                                                           { The file does not exist, I need to create one }
   then
     begin
      {$I-}
-     Rewrite(myFile);                                                                              { Creates a new file and opens it. If an external file with the same name already exists, it is deleted and a new empty file is created in its place. }
+     Rewrite(myFile);                                                    { Creates a new file and opens it. If an external file with the same name already exists, it is deleted and a new empty file is created in its place. }
      {$I+}
     end
   else
     begin
      {$I-}
-     Reset(myFile);                                                                                { Opens an existing file. Just open it and close it. I don't write nothing to it. }
+     Reset(myFile);                                                      { Opens an existing file. Just open it and close it. I don't write nothing to it. }
      {$I+}
     end;
 
@@ -2053,50 +1930,42 @@ begin
    begin
     Close(myFile);
     if CreateNew
-    then System.SysUtils.DeleteFile(FileOrFolder);                                           { I created, so I delete it. }
+    then System.SysUtils.DeleteFile(FileOrFolder);                       { I created, so I delete it. }
    end;
  FINALLY
-   SetErrorMode( wOldErrorMode );                                                                  { go back to previous error mode }
+   SetErrorMode( wOldErrorMode );                                        { go back to previous error mode }
  END;
 end;
 
 
-function IsDirectoryWriteable(const Dir: string): Boolean;    { Source: https://stackoverflow.com/questions/3599256/how-can-i-use-delphi-to-test-if-a-directory-is-writeable }
+{ Same as TestWriteAccess
+  Source: https://stackoverflow.com/questions/3599256/how-can-i-use-delphi-to-test-if-a-directory-is-writeable }
+function IsDirectoryWriteable(const Dir: string): Boolean;
 var
   FileName: String;
   H: THandle;
 begin
   FileName := IncludeTrailingPathDelimiter(Dir) + 'IsDirectoryWriteable_Check.tmp';
   if FileExists(FileName)
-  then raise exception.Create('IsDirectoryWriteable: File already exists!');
+  AND NOT DeleteFile(FileName)
+  then Raise Exception.Create('File is locked!'+ CRLF+ FileName);
 
   H := CreateFile(PChar(FileName), GENERIC_READ or GENERIC_WRITE, 0, NIL, CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY or FILE_FLAG_DELETE_ON_CLOSE, 0);
   Result:= H <> INVALID_HANDLE_VALUE;
-  if Result then CloseHandle(H);
+  if Result
+  then CloseHandle(H);
+
+  DeleteFile(FileName);
 end;
 
 
-function CanCreateFile(AString:String):BOOL;
+function CanCreateFile(AString:String): Boolean;
 VAR h : integer;
 begin
    h := CreateFile(Pchar(AString), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-   result :=h >=0;
-   if result then FileClose(h);
+   Result:= h>= 0;
+   if Result then FileClose(h);
 end;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2105,6 +1974,7 @@ end;
 {--------------------------------------------------------------------------------------------------
    SPECIAL FOLDERS
 --------------------------------------------------------------------------------------------------}
+
 function GetProgramFilesDir: string;
 
     { This function is copied from cmRegistry, but we don't want to depend on that unit, so... }
@@ -2130,8 +2000,8 @@ begin
 end;
 
 
-function GetWinDir: string;                                                                        {* Intoarce calea directorului Windows*}
-VAR  Windir: PChar;                                                                                {  aflu care e directorul SI lungimea sirului} {cred ca aici scurtez sirul - eliberez memoria}{ rezerv memorie}  {setLength(sWDir,255) setLength(sWDir,GetWindowsDirectory(PChar(sWDir),255))}
+function GetWinDir: string; { Returns Windows folder }
+VAR  Windir: PChar;
 begin
  Windir:= GetMemory(256);
  GetWindowsDirectory(windir, 256);
@@ -2152,17 +2022,313 @@ begin
 end;
 
 
-function GetTempFolderOld: String;                                                                 { DEL }
-VAR tempFolder: array[0..MAX_PATH] of Char;  //ok
+
+
+
+function GetMyDocuments: String;
 begin
-  GetTempPath(MAX_PATH, @tempFolder);
-  Result:= Trail(StrPas(tempFolder));
+ Result:= TPath.GetDocumentsPath;
+end;
+
+
+function GetMyPictures: string;
+begin
+ Result:= TPath.GetPicturesPath;
+end;
+
+
+function GetMusicPath: string;
+begin
+ Result:= TPath.GetMusicPath;
+end;
+
+
+function GetMoviesPath: string;
+begin
+ Result:= TPath.GetMoviesPath;
+end;
+
+
+function GetDownloadsPath: string;
+begin
+ Result:= TPath.GetDownloadsPath;
+end;
+
+
+function GetDesktopFolder: string;
+begin
+ Result:= Trail(GetSpecialFolder(CSIDL_DESKTOPDIRECTORY));
 end;
 
 
 function GetTempFolder: String;
 begin
- Result:= TPath.GetTempPath;
+ Result:= TPath.GetTempPath;    /////////////  Trail(); ?
+end;
+
+
+{
+  Returns either the home path of the user or the application's writable scratch directory or storage.
+
+  You should use GetHomePath to store settings per user. For example: TFile.WriteAllText(TPath.GetHomePath() + TPath.DirectorySeparatorChar + 'sample.txt', s);
+
+  On Windows        points to the user’s application data folder.
+  On Linux & OS X   points to the user’s home folder, as defined by the $(HOME) environment variable.
+  On iOS & Android  points to the device-specific location of the sandbox for the application; the iOS home location is individually defined for each application instance and for each iOS device.
+
+  Windows XP       C:\Documents and Settings\<username>\Application Data  CSIDL_APPDATA
+  Windows Vista+   C:\Users\<username>\AppData\Roaming                    FOLDERID_RoamingAppData
+  OS X             /Users/<username>
+  iOS Device       /private/var/mobile/Containers/Data/Application/<application ID>
+  iOS Simulator    /Users/<username>/Library/Developer/CoreSimulator/Devices/<Device ID>/data/Containers/Data/Application/<application ID>
+  Android          /data/data/<application ID>/files
+  Linux            /home/<username>  Home Folder }
+function GetHomePath: string;
+begin
+ Result:= TPath.GetHomePath;
+end;
+
+function GetDocumentsPath: string;
+begin
+ Result:= TPath.GetDocumentsPath;
+end;
+
+function GetSharedDocumentsPath: string;
+begin
+ Result:= TPath.GetDocumentsPath;
+end;
+
+
+{
+  Returns the path to a directory to store any data that your application needs store, regardless of the user, such as files, caches, resources, and preferences.
+
+  Windows,      it points to the folder that contains the executable file.  C:\Program Files\<application folder>
+  OSX & iOS,    it points to the library directory.
+  Android,      it points to the device-specific location of the sandbox for the application; the iOS home location is individually defined for each application instance and for each iOS device. }
+function GetLibraryPath: string;
+begin
+ Result:= TPath.GetLibraryPath;
+end;
+
+
+{
+  Returns the path to the directory where your application can store cache files.
+
+  On Windows and OS X - points to a user-specific, application-agnostic directory.
+  On iOS and Android  - points to an application-specific, user-specific directory.
+
+  Windows XP            C:\Documents and Settings\<username>\Local Settings\Application Data  CSIDL_LOCAL_APPDATA
+  Windows Vista+        C:\Users\<username>\AppData\Local                                     FOLDERID_LocalAppData }
+function GetCachePath: string;
+begin
+ Result:= TPath.GetCachePath;
+end;
+
+
+{
+  PublicPath returns the path to the directory where you can store application data that can be shared with other applications.
+  Note:
+    In desktop applications, "shared" means "shared between different users".
+    In mobile applications,  "shared" means "shared between different applications".
+
+  Windows       it points to a system-wide directory.
+  OS X          it points to a user-specific, application-agnostic directory.
+  iOS Device    it returns an empty string as this directory is currently not supported.
+  iOS Simulator it points to an application-specific, user-specific directory.
+  Android       it points to an application-specific, user-specific directory.
+
+  Windows XP       C:\Documents and Settings\All Users\Application Data       CSIDL_COMMON_APPDATA
+  Windows Vista+   C:\ProgramData                                             FOLDERID_ProgramData
+  OS X             /Users/<username>/Public
+  iOS Device       -
+  iOS Simulator    /Users/<username>/Library/Developer/CoreSimulator/Devices/<Device ID>/data/Containers/Data/Application/<application ID>/Public  NSSharedPublicDirectory
+  Android          /storage/emulated/0/Android/data/<application ID>/files            }
+function GetPublicPath: string;
+begin
+ Result:= TPath.GetPublicPath;
+end;
+
+
+function GetStartMenuFolder: string;
+begin
+ Result:= Trail(GetSpecialFolder(CSIDL_STARTMENU));
+end;
+
+
+function GetMyDocumentsAPI: string;
+begin
+ Result:= Trail(GetSpecialFolder(CSIDL_PERSONAL));
+end;
+
+
+function GetMyPicturesAPI: string;
+VAR s: string;
+begin
+ s:= GetSpecialFolder(CSIDL_MYPICTURES);
+ if s= ''
+ then Result:= ''
+ else Result:= Trail(GetSpecialFolder(CSIDL_MYPICTURES));
+end;
+
+
+{ Retrievwa the shell folders from registry }
+function GetSpecialFolder (OS_SpecialFolder: string): string;
+{ DOCS:
+  Calling the API function is safer, because the registry structure may change. It has not changed in W2k, but it may happen.
+  SHGetFolderSpecialLocation uses the registry now, but may read its data from any other structure in a future version of Windows.
+  The published API is the "right" way to access these data, because Microsoft has to support it for a long time.
+  Writing application that use undocumented features expose them to compatibility issues.
+  The folders retrieved should include:
+    cmShellAppData =    'AppData';
+    cmShellCache =      'Cache';
+    cmShellCookies =    'Cookies';
+    cmShellDesktop =    'Desktop';
+    cmShellFavorites =  'Favorites';
+    cmShellFonts =      'Fonts';
+    cmShellHistory =    'History';
+    cmShellLocalApp =   'Local AppData';
+    cmShellNetHood =    'NetHood';
+    cmShellPersonal =   'Personal';
+    cmShellPrintHood =  'PrintHood';
+    cmShellPrograms =   'Programs';
+    cmShellRecent =     'Recent';
+    cmShellSendTo =     'SendTo';
+    cmShellStartMenu =  'Start Menu';
+    cmShellStartUp =    'Startup';
+    cmShellTemplates =  'Templates';                                          }
+VAR Reg: TRegistry;
+begin
+  Result:= '';
+  reg := TRegistry.Create(KEY_READ);
+  TRY
+   reg.RootKey := HKEY_CURRENT_USER;
+   reg.OpenKey('Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders', FALSE);
+   Result:= reg.ReadString(OS_SpecialFolder);                                                      { for example OS_SpecialFolder= 'Start Menu' }
+   reg.CloseKey;
+  FINALLY
+   FreeAndNil(reg);
+  END;
+end;
+
+{
+function GetSpecialFolder_old (CSIDL: Integer): WideString;                                        { DEL
+CONST SHGFP_TYPE_CURRENT = 0;
+VAR path: array [0..Max_Path] of char;
+begin
+ if ShGetFolderPath(0, CSIDL, 0, SHGFP_TYPE_CURRENT, @path[0])= S_ok
+ then Result:= Trail (Path)
+ else Result:= '';
+end;     }
+
+
+{--------------------------------------------------------------------------------------------------
+ uses SHFolder
+ As recommended by Borland in this doc: VistaUACandDelphi.pdf
+ Minimum operating systems: Windows 95 with Internet Explorer 5.0, Windows 98 with Internet Explorer 5.0, Windows 98 Second Edition (SE), Windows NT 4.0 with Internet Explorer 5.0, Windows NT 4.0 with Service Pack 4 (SP4)
+
+ SPECIAL FOLDERS CONSTANTS:
+   Full list of 'Special folder constants' are available here:  http://msdn.microsoft.com/en-us/library/bb762494(VS.85).aspx
+   'Special folder constants' are declared in ShlObj and SHFolder (as duplicates). SHFolder.pas is the interface for Shfolder.dll.
+--------------------------------------------------------------------------------------------------}
+function GetSpecialFolder (CSIDL: Integer; ForceFolder: Boolean = FALSE): string;
+VAR i: Integer;
+begin
+ SetLength(Result, MAX_PATH);
+ if ForceFolder
+ then ShGetFolderPath(0, CSIDL OR CSIDL_FLAG_CREATE, 0, 0, PChar(Result))
+ else ShGetFolderPath(0, CSIDL, 0, 0, PChar(Result));
+ i:= Pos(#0, Result);
+ if i> 0
+ then SetLength(Result, pred(i));
+
+ Result:= Trail (Result);
+end;
+
+
+{ Get a list of ALL special folders. Used by Uninstaller. }
+function GetSpecialFolders: TStringList;
+begin
+ Result:= TStringList.Create;                                                          //  FROM ShlObj.pas
+ Result.Add(GetSpecialFolder(CSIDL_DESKTOP                 , FALSE));                  // <desktop>
+ Result.Add(GetSpecialFolder(CSIDL_INTERNET                , FALSE));                  // Internet Explorer (icon on desktop)
+ Result.Add(GetSpecialFolder(CSIDL_PROGRAMS                , FALSE));                  // Start Menu\Programs
+ Result.Add(GetSpecialFolder(CSIDL_CONTROLS                , FALSE));                  // My Computer\Control Panel
+ Result.Add(GetSpecialFolder(CSIDL_PRINTERS                , FALSE));                  // My Computer\Printers
+ Result.Add(GetSpecialFolder(CSIDL_PERSONAL                , FALSE));                  // My Documents
+ Result.Add(GetSpecialFolder(CSIDL_FAVORITES               , FALSE));                  // <user name>\Favorites
+ Result.Add(GetSpecialFolder(CSIDL_STARTUP                 , FALSE));                  // Start Menu\Programs\Startup
+ Result.Add(GetSpecialFolder(CSIDL_RECENT                  , FALSE));                  // <user name>\Recent
+ Result.Add(GetSpecialFolder(CSIDL_SENDTO                  , FALSE));                  // <user name>\SendTo
+ Result.Add(GetSpecialFolder(CSIDL_BITBUCKET               , FALSE));                  // <desktop>\Recycle Bin
+ Result.Add(GetSpecialFolder(CSIDL_STARTMENU               , FALSE));                  // <user name>\Start Menu
+ Result.Add(GetSpecialFolder(CSIDL_MYDOCUMENTS             , FALSE));                  // Personal was just a silly name for My Documents
+ Result.Add(GetSpecialFolder(CSIDL_MYMUSIC                 , FALSE));                  // "My Music" folder
+ Result.Add(GetSpecialFolder(CSIDL_MYVIDEO                 , FALSE));                  // "My Videos" folder
+ Result.Add(GetSpecialFolder(CSIDL_DESKTOPDIRECTORY        , FALSE));                  // <user name>\Desktop
+ Result.Add(GetSpecialFolder(CSIDL_DRIVES                  , FALSE));                  // My Computer
+ Result.Add(GetSpecialFolder(CSIDL_NETWORK                 , FALSE));                  // Network Neighborhood (My Network Places)
+ Result.Add(GetSpecialFolder(CSIDL_NETHOOD                 , FALSE));                  // <user name>\nethood
+ Result.Add(GetSpecialFolder(CSIDL_FONTS                   , FALSE));                  // windows\fonts
+ Result.Add(GetSpecialFolder(CSIDL_TEMPLATES               , FALSE));
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_STARTMENU        , FALSE));                  // All Users\Start Menu
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_PROGRAMS         , FALSE));                  // All Users\Start Menu\Programs
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_STARTUP          , FALSE));                  // All Users\Startup
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_DESKTOPDIRECTORY , FALSE));                  // All Users\Desktop
+ Result.Add(GetSpecialFolder(CSIDL_APPDATA                 , FALSE));                  // <user name>\Application Data
+ Result.Add(GetSpecialFolder(CSIDL_PRINTHOOD               , FALSE));                  // <user name>\PrintHood
+ Result.Add(GetSpecialFolder(CSIDL_LOCAL_APPDATA           , FALSE));                  // <user name>\Local Settings\Applicaiton Data (non roaming)
+ Result.Add(GetSpecialFolder(CSIDL_ALTSTARTUP              , FALSE));                  // non localized startup
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_ALTSTARTUP       , FALSE));                  // non localized common startup
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_FAVORITES        , FALSE));
+ Result.Add(GetSpecialFolder(CSIDL_INTERNET_CACHE          , FALSE));
+ Result.Add(GetSpecialFolder(CSIDL_COOKIES                 , FALSE));
+ Result.Add(GetSpecialFolder(CSIDL_HISTORY                 , FALSE));
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_APPDATA          , FALSE));                  // All Users\Application Data
+ Result.Add(GetSpecialFolder(CSIDL_WINDOWS                 , FALSE));                  // GetWindowsDirectory()
+ Result.Add(GetSpecialFolder(CSIDL_SYSTEM                  , FALSE));                  // GetSystemDirectory()
+ Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILES           , FALSE));                  // C:\Program Files
+ Result.Add(GetSpecialFolder(CSIDL_MYPICTURES              , FALSE));                  // C:\Program Files\My Pictures
+ Result.Add(GetSpecialFolder(CSIDL_PROFILE                 , FALSE));                  // USERPROFILE
+ Result.Add(GetSpecialFolder(CSIDL_SYSTEMX86               , FALSE));                  // x86 system directory on RISC
+ Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILESX86        , FALSE));                  // x86 C:\Program Files on RISC
+ Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILES_COMMON    , FALSE));                  // C:\Program Files\Common
+ Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILES_COMMONX86 , FALSE));                  // x86 Program Files\Common on RISC
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_TEMPLATES        , FALSE));                  // All Users\Templates
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_DOCUMENTS        , FALSE));                  // All Users\Documents
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_ADMINTOOLS       , FALSE));                  // All Users\Start Menu\Programs\Administrative Tools
+ Result.Add(GetSpecialFolder(CSIDL_ADMINTOOLS              , FALSE));                  // <user name>\Start Menu\Programs\Administrative Tools
+ Result.Add(GetSpecialFolder(CSIDL_CONNECTIONS             , FALSE));                  // Network and Dial-up Connections
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_MUSIC            , FALSE));                  // All Users\My Music
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_PICTURES         , FALSE));                  // All Users\My Pictures
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_VIDEO            , FALSE));                  // All Users\My Video
+ Result.Add(GetSpecialFolder(CSIDL_RESOURCES               , FALSE));                  // Resource Direcotry
+ Result.Add(GetSpecialFolder(CSIDL_RESOURCES_LOCALIZED     , FALSE));                  // Localized Resource Direcotry
+ Result.Add(GetSpecialFolder(CSIDL_COMMON_OEM_LINKS        , FALSE));                  // Links to All Users OEM specific apps
+ Result.Add(GetSpecialFolder(CSIDL_CDBURN_AREA             , FALSE));                  // USERPROFILE\Local Settings\Application Data\Microsoft\CD Burning
+ Result.Add(GetSpecialFolder(CSIDL_COMPUTERSNEARME         , FALSE));                  // Computers Near Me (computered from Workgroup membership)
+ Result.Add(GetSpecialFolder(CSIDL_FLAG_CREATE             , FALSE));                  // combine with CSIDL_ value to force folder creation in SHGetFolderPath
+ Result.Add(GetSpecialFolder(CSIDL_FLAG_DONT_VERIFY        , FALSE));                  // combine with CSIDL_ value to return an unverified folder path
+ Result.Add(GetSpecialFolder(CSIDL_FLAG_DONT_UNEXPAND      , FALSE));                  // combine with CSIDL_ value to avoid unexpanding environment variables
+ Result.Add(GetSpecialFolder(CSIDL_FLAG_NO_ALIAS           , FALSE));                  // combine with CSIDL_ value to insure non-alias versions of the pidl
+ Result.Add(GetSpecialFolder(CSIDL_FLAG_PER_USER_INIT      , FALSE));                  // combine with CSIDL_ value to indicate per-user init (eg. upgrade)
+ Result.Add(GetSpecialFolder(CSIDL_FLAG_MASK               , FALSE));                  // mask for all possible flag values
+end;
+
+
+{ Returns True if the parameter is a special folder such us 'c:\My Documents' }
+function FolderIsSpecial(const Path: string): Boolean;
+VAR s: string;
+    SpecialFolders: TStringList;
+begin
+ Result:= FALSE;
+ SpecialFolders:= GetSpecialFolders;
+ TRY
+  for s in SpecialFolders DO
+   if SameFolder(Path, s)
+   then EXIT(TRUE);
+ FINALLY
+  FreeAndNil(SpecialFolders);
+ END;
 end;
 
 
@@ -2172,13 +2338,36 @@ begin
 end;
 
 
+function GetRandomFileName: string;
+begin
+ Result:= TPath.GetRandomFileName;
+end;
+
+
+function GetTempFileName: string;
+begin
+ Result:= TPath.GetTempFileName;
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 {--------------------------------------------------------------------------------------------------
    PROCESS FOLDER STRING
 --------------------------------------------------------------------------------------------------}
 
 { It accepts both incomplete and complete paths (only folder and folder + filename).
-  NOTE! When a dir path is provided (without file name) it  MUST  end with a '\' separator else the function will treat the last folder as being the file name (without extension)!!!
+  NOTE! When a dir path is provided (without file name) it MUST end with a '\' separator else the function will treat the last folder as being the file name (without extension)!!!
   Example: 'c:\windows\system\me.txt' returns 'system'
   Works with UNC paths! }
 function ExtractLastFolder(FullPath: string): string;
@@ -2194,13 +2383,19 @@ begin
 end;
 
 
-function ExtractParentFolder(Folder: string): string;  { For c:\1\2\3\4\5\6\ returns c:\1\2\3\4\5 } { http://stackoverflow.com/questions/22640879/how-to-get-path-to-the-parent-folder-of-a-certain-directory }
+{ For c:\1\2\3\ returns c:\1\2
+  http://stackoverflow.com/questions/22640879/how-to-get-path-to-the-parent-folder-of-a-certain-directory }
+function ExtractParentFolder(Folder: string): string;
 begin
  Result:= TDirectory.GetParent(ExcludeTrailingPathDelimiter(Folder))
 end;
 
 
-function ExtractFirstFolder(Folder: string): string;  { For c:\1\2\3\ returns 1\.  From c:\1 it returns ''. From '\1\' return the same  } { http://stackoverflow.com/questions/22640879/how-to-get-path-to-the-parent-folder-of-a-certain-directory }
+{ For 'c:\1\2\3\' returns '1\'.
+  For 'c:\1' it returns ''.
+  For '\1\' returns the same.
+  http://stackoverflow.com/questions/22640879/how-to-get-path-to-the-parent-folder-of-a-certain-directory }
+function ExtractFirstFolder(Folder: string): string;
 VAR iPos: Integer;
 begin
  iPos:= Pos(':\', Folder);
@@ -2212,44 +2407,29 @@ begin
 end;
 
 
+{ Does the same as the function above but it accepts a file as input.
+  Works with UNC paths
 
-{  does the same but it accepts a file as input.  Works with UNC paths!  }
-function TrimLastFolder(CONST DirPath: string): string;                                               { exemplu pentru 'c:\windows\system' intoarce doar 'c:\windows\'. Functoneaza si cu cai incomplete ca 'windows\system'}
+  Also exists:
+     IOUtils.TDirectory.GetParent.
+     But is simply sucks. See http://stackoverflow.com/questions/35429699/system-ioutils-tdirectory-getparent-odd-behavior
+     Also GetParent raises an exception if the given path is invalid or the directory DOES NOT exist
+     So stick with TrimLastFolder.
+ }
+function TrimLastFolder(CONST DirPath: string): string;  { Example: for 'c:\windows\system' returns only 'c:\windows\'. It also works with incomplete paths like 'windows\system' }
 VAR i: Integer;
 begin
 {$IFDEF MSWINDOWS}
  Result:= ExcludeTrailingPathDelimiter(DirPath);
  i:= Length(Result);
- WHILE (i> 0) AND (Result[i]<> '\')                                                                { cauta de la coada spre cap pana gaseste primul delimitator }
+ WHILE (i> 0) AND (Result[i]<> '\')                      { Search from tail to head until you find the first delimiter }
   DO Dec(i);
 
  Result:= Trail(CopyTo(Result, 1, i));
-{$else}
+{$ELSE}
  Not available on Mac!
 {$ENDIF}
-end;                                                                                               { ALTA IDEE DESPRE CUM AS PUTEA SA IMPLEMENTEZ ASTA:  Copy(RootFull, 1, LastPos('\', RootFull)- 1) }
-{ Also exists: IOUtils.TDirectory.GetParent.
-  But is simply sucks. See http://stackoverflow.com/questions/35429699/system-ioutils-tdirectory-getparent-odd-behavior
-  Also GetParent raises an exception if the given path is invalid or the directory DOES NOT exist
-  So stick with TrimLastFolder.}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+end;                                                     { Could also be implemented as: Copy(RootFull, 1, LastPos('\', RootFull)- 1) }
 
 
 
@@ -2262,11 +2442,12 @@ end;                                                                            
 
 
 {--------------------------------------------------------------------------------------------------
- READ/WRITE UNICODE
+   READ/WRITE TEXT
+   Also see: ccStreamFile.pas.StringFromFileStart
 --------------------------------------------------------------------------------------------------}
 
 { Write Unicode strings to a UTF8 file.
-It can also write a preamble.
+  It can also write a preamble.
   Based on: http://stackoverflow.com/questions/35710087/how-to-save-classic-delphi-string-to-disk-and-read-them-back/36106740#36106740  }
 procedure StringToFile(CONST FileName: string; CONST aString: String; CONST WriteOp: TWriteOperation= woOverwrite; WritePreamble: Boolean= FALSE);
 VAR
@@ -2301,22 +2482,18 @@ begin
 end;
 
 
-function StringFromFile(CONST FileName: string): String;  { Tries to autodetermine the file type (ANSI, UTF8, UTF16, etc). Works with UNC paths }
+{ Tries to autodetermine the file type (ANSI, UTF8, UTF16, etc). Works with UNC paths }
+function StringFromFile(CONST FileName: string): String;
 begin
  Result:= System.IOUtils.TFile.ReadAllText(FileName);
 end;
 
 
+{ Read a WHOLE file and return its content as AnsiString.
+  The function will not try to autodetermine file's type.
+  It will simply read the file as ANSI.
 
-
-
-
-
-{--------------------------------------------------------------------------------------------------
-  READ/WRITE ANSI
---------------------------------------------------------------------------------------------------}
-
-{ Read a WHOLE file and return its content as AnsiString. The function will not try to autodetermine file's type. It will simply read the file as ANSI. Also see this: http://www.fredshack.com/docs/delphi.html }
+  Also see this: http://www.fredshack.com/docs/delphi.html }
 function StringFromFileA(CONST FileName: string): AnsiString;
 VAR Stream: TFileStream;
 begin
@@ -2336,7 +2513,6 @@ begin
    FreeAndNil(Stream);
  END;
 end;
-
 
 
 procedure StringToFileA (CONST FileName: string; CONST aString: AnsiString; CONST WriteOp: TWriteOperation);
@@ -2361,20 +2537,12 @@ begin
  END;
 end;
 
+
 procedure StringToFileA (CONST FileName: string; CONST aString: String; CONST WriteOp: TWriteOperation);
 begin
  StringToFileA(FileName, AnsiString(aString), WriteOp);
 end;
 
-
-
-
-
-{--------------------------------------------------------------------------------------------------
- SPECIAL
-
- Also see: ccStreamFile.pas -> StringFromFileStart
---------------------------------------------------------------------------------------------------}
 
 { Read file IF it exists. Otherwise, return '' }
 function StringFromFileExists(CONST FileName: string): String;          // Works with UNC paths
@@ -2390,13 +2558,6 @@ begin
  Result:= TStringList.Create;
  Result.Text:= StringFromFile(FileName);
 end;
-
-
-
-
-
-
-
 
 
 
@@ -2425,26 +2586,27 @@ end;
    Same speed for SSD and HDD.
 
   See also: http://www.delphipages.com/forum/showthread.php?t=201629 }
+{TODO 2: use buffered file }
 
 function CountLines(CONST Filename: string; CONST BufferSize: Cardinal= 128000): Int64;            { Source: http://www.delphipages.com/forum/showthread.php?t=201629 }
 VAR
    FS: TFileStream;
    bytes: array of Byte;
-   i, red: Integer;
+   i, iRead: Integer;
 begin
  Result := 0;
  Assert(FileExists(FileName));
  SetLength(Bytes, BufferSize);
- FS := TFileStream.Create(Filename, fmOpenRead or fmShareDenyNone);   {TODO 2: use buffered file }
+ FS := TFileStream.Create(Filename, fmOpenRead or fmShareDenyNone);
  TRY
-  red := FS.Read(bytes[0], BufferSize);
-  while red > 0 do
+  iRead := FS.Read(bytes[0], BufferSize);
+  while iRead > 0 do
    begin
-    for i := 0 to red - 1 do
+    for i := 0 to iRead - 1 do
      if (bytes[i] = 10)
      then Inc(Result);
 
-    red := FS.Read(bytes[0], BufferSize);
+    iRead := FS.Read(bytes[0], BufferSize);
    end;
 
   if FS.Size > 0 then
@@ -2454,8 +2616,8 @@ begin
     then FS.Position :=  FS.Size-BufferSize         // Update to XE7. It was: FS.Seek(-BufferSize, soFromEnd)
     else FS.Position := 0;
 
-    red := FS.Read(bytes[0], BufferSize);
-    i := red - 1;
+    iRead := FS.Read(bytes[0], BufferSize);
+    i := iRead - 1;
 
     { skip bytes < 9 or equal to Ctrl+Z (26) }
     WHILE (i > -1) AND ((bytes[i] < 9) OR (bytes[i] = 26))
@@ -2474,48 +2636,6 @@ end;
 
 
 
-{ Limited on ~1.7GB files on 32 bit. Also limited by mem fragmentation. Time: 1560ms for a 2.35MB file }
-(*todo: put it back
-procedure SortTextFile(CONST InputName, OutputFile: string);
-var
-  I: Integer;
-  Arr: array of String;         {TODO 5: use AnsiString }
-  Lines: Integer;
-  InputFile: TCubicBuffStream;
-begin
-  InputFile:= TCubicBuffStream.Create(InputName, fmOpenRead);
-  TRY
-   { Find out how many lines I have in file. I need this in order to allocate all memory necessary for sorting in one big chunck (prevent memory fragmentation problems) }
-   Lines:= InputFile.CountLines;
-   InputFile.Position:= 0;
-
-   { Get RAM }
-   SetLength(Arr, Lines);        { THIS MAY FAIL IF NOT ENOUGH RAM or IF MEM IS FRAGMENTED }
-
-   { Populate an array with the items in the memo }
-   for I := 0 to Lines - 1 DO
-     Arr[I] := string(InputFile.ReadLine);
-
-   { Sort the array }
-   System.Generics.Collections.TArray.Sort<String>(Arr, System.Generics.Defaults.TStringComparer.Ordinal);
-
-   { Write it back }
-   for I := 0 to Lines - 1
-     DO StringToFile(OutputFile, Arr[I]+ CRLF, woAppend, FALSE);
-
-  FINALLY
-   FreeAndNil(InputFile);
-  END;
-end;  *)
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2527,18 +2647,20 @@ end;  *)
    READ/WRITE TO A BINARY FILE
 -----------------------------------------------------------------------------------------------------------------------}
 
-function WriteBinFile (CONST FileName: string; CONST Data: TBytes; CONST Overwrite: Boolean= TRUE): Boolean;    { Returns TRUE if eveything is OK }
+{ Writes binary data in "Data" to disk file.
+  Returns TRUE if eveything is OK }
+function WriteBinFile (CONST FileName: string; CONST Data: TBytes; CONST Overwrite: Boolean= TRUE): Boolean;
 VAR StreamFile: TFileStream;
     AccessType: Word;
 begin
  if Overwrite
- then AccessType:= fmCreate // del OR fmShareDenyNone
+ then AccessType:= fmCreate
  else
    if FileExists(FileName)
    then AccessType:= fmOpenWrite
    else AccessType:= fmCreate;
 
- StreamFile:= TFileStream.Create(FileName, AccessType);                                          { <--------- EFCreateError:   Cannot create file "blablabla". Access is denied. }
+ StreamFile:= TFileStream.Create(FileName, AccessType);    { <--------- EFCreateError:   Cannot create file "blablabla". Access is denied. }
  TRY
    StreamFile.Position:= StreamFile.Size;  { Jump at the end of the file }   //it was: Seek(StreamFile.Size, soFromCurrent);
    Result:= NOT StreamFile.Write(Data, Length(Data))= Length(Data);
@@ -2555,9 +2677,11 @@ end;
 
 
 {--------------------------------------------------------------------------------------------------
-                                FILE COPY/MOVE
+   FILE COPY/MOVE
 --------------------------------------------------------------------------------------------------}
-function FileCopyQuick(CONST From_FullPath, To_DestFolder: string; Overwrite: boolean): boolean;   { in this function you don't have to provide the full path for the second parameter but only the destination folder }
+
+{ In this function you don't have to provide the full path for the second parameter but only the destination folder }
+function FileCopyQuick(CONST From_FullPath, To_DestFolder: string; Overwrite: boolean): boolean;
 begin
  Overwrite:= NOT Overwrite;
  Result:= CopyFile(PChar(From_FullPath), PChar(To_DestFolder+ ExtractFileName(From_FullPath)), Overwrite)
@@ -2566,7 +2690,7 @@ end;
 
 function FileCopyTo(CONST sFrom, sTo: string; Overwrite: Boolean): boolean;
 begin
- Overwrite:= NOT Overwrite;                                                                        { rahatul asta de functie M$ are parametru Owervrite pe dos }
+ Overwrite:= NOT Overwrite;  { Bug: this crapy M$ function has the Owervrite parameter backwards, so we have to flip it. }
  Result:= CopyFile(PChar(sFrom), PChar(sTo), Overwrite);
 end;
 
@@ -2608,101 +2732,97 @@ end;
 
 
 {--------------------------------------------------------------------------------------------------
-                           FOLDER COPY/MOVE
+   FOLDER COPY/MOVE
 --------------------------------------------------------------------------------------------------}
+
 { Copy its CONTENT, all its files and subfolders.
-  Returns how many files were not copied. So it returns 0 for 'ok' }
-function CopyFolder(CONST FromFolder, ToFolder : String; Overwrite: Boolean): integer;
+  Returns how many files were not copied. So it returns 0 for 'ok'. }
+function CopyFolder(CONST FromFolder, ToFolder : String; Overwrite: Boolean= True; FileType: string= '*.*'): integer;
 VAR
-  SearchRec : TSearchRec;
-  Src, Dst  : string;
+  s, Dst : string;
+  TSL: TStringList;
 begin
- Result:= -1;
- Src := trail(FromFolder);
- Dst := trail(ToFolder);
+ Result:= 0;
+ Dst := Trail(ToFolder);
  ForceDirectories(Dst);
 
- if FindFirst(Src + '*.*', faAnyFile, SearchRec) = 0 then
-  TRY
-   Result:= 0;
-   REPEAT
-    if (SearchRec.Name <> '.') AND (SearchRec.Name <> '..')
-    then
-     if (SearchRec.Attr and faDirectory) > 0
-     then CopyFolder(Src+ SearchRec.Name, Dst+ SearchRec.name, Overwrite)
-     else
-       if NOT FileCopyTo(Src+ SearchRec.Name, Dst+ SearchRec.name, Overwrite)
-       then inc(Result);
-   UNTIL FindNext(SearchRec) <> 0;
+ TSL:= ListFilesOf(FromFolder, FileType, TRUE, DigSubdirectories);
+ TRY
+   for s in TSL do
+     if NOT FileCopyTo(s, Dst+ ExtractFileName(s), Overwrite)
+     then inc(Result);
   FINALLY
-    FindClose(SearchRec);
+    FreeAndNil(TSL);
   end;
 end;
 
 
-
-procedure MoveFolder(CONST FromFolder, ToFolder: String; Overwrite: Boolean);      { Also see: http://www.swissdelphicenter.ch/en/showcode.php?id=152 }
+{ Example:  MoveFolder('c:\Documents', 'C:\Backups') }
+procedure MoveFolder(CONST FromFolder, ToFolder: String; SilentOverwrite: Boolean);      { Also see: http://www.swissdelphicenter.ch/en/showcode.php?id=152 }
 begin
- if DirectoryExists(ToFolder)
- then
-   begin
-    CopyFolder(FromFolder, ToFolder, Overwrite);     { This is slow (from C: to C:) ! To do: list all files in the folder and move them one by one. This way I get rid of the copy operation }
-    DeleteFolder(FromFolder);
-   end
- else TDirectory.Move(FromFolder, ToFolder);         { This should be fast }
+ if DirectoryExists(ToFolder) then
+   if SilentOverwrite
+   then
+    begin
+      CopyFolder(FromFolder, ToFolder, True);
+      Deletefolder(ToFolder);  { This is slow. Do a direct file move for each file. }
+    end
+   else
+     { Move raises an exception if the destination folder already exists, so we have to delete the Destination folder first. But for this we need to ask the user. }
+     if MesajYesNo('Cannot move '+ FromFolder +'. Destination folder already exists:'+ ToFolder+ CRLF+ 'Press Yes to delete Destination folder. Press No to cancel the opperation.')
+     then
+      begin
+       Deletefolder(ToFolder);
+       TDirectory.Move(FromFolder, ToFolder);
+      end;
 end;
-
 
 
 {Moves the content of the FromFolder to the destination folder. The destination folder MUST be an incomplete path!
  Returns the location where the folder was moved.
- Example:  MoveFolder('c:\Movies\NewMovies', 'OldMovies') will rename/move the NewMovies folder to 'c:\Movies\OldMovies'}
+ Example:  MoveFolder('c:\Documents\NewDocuments', 'OldDocuments') will move the NewDocuments folder to 'c:\Documents\OldDocuments'}
 function MoveFolderRel(CONST FromFolder, ToRelFolder: string; Overwrite: Boolean): string;
 begin
  if Pos(':', ToRelFolder) > 0
- then raise exception.Create('The input folder cannot be a full path!'+ CRLF+ ToRelFolder);
+ then Raise Exception.Create('The input folder cannot be a full path!'+ CRLF+ ToRelFolder);
 
  Result:= TrimLastFolder(FromFolder) + ToRelFolder;
  MoveFolder(FromFolder, Result, Overwrite);
 end;
 
 
-
-function MoveFolderSlow(CONST FromFolder, ToFolder: String; Overwrite: boolean): integer;           { This is obsolete. Very slow. Intoarce un numar care arata cate fisiere nu au fost copiate (probleme) }
+{ This is obsolete. Very slow. Intoarce un numar care arata cate fisiere nu au fost copiate (probleme) }
+function MoveFolderSlow(CONST FromFolder, ToFolder: String; Overwrite: boolean): integer;
 begin
  Result:= CopyFolder(FromFolder, ToFolder, Overwrite);
  DeleteFolder(FromFolder);
 end;
 
 
+{  Copy only CopyBytes bytes from the begining of the file.
+   If destination exists it is overwriten.
 
+   Extended version of JclFileUtils.BuildFileList:
+   function parameter Path can include multiple FileMasks as: c:\aaa\*.pas; pro*.dpr; *.d??
+   FileMask Seperator = ';'
 
-
-
-
-
-
-
-
-(* Extended version of JclFileUtils.BuildFileList:
-   function parameter Path can include multiple FileMasks as:
-   c:\aaa\*.pas; pro*.dpr; *.d??
-   FileMask Seperator = ';'  *)
-procedure CopyFilePortion(CONST SourceName, DestName: string; CONST CopyBytes: int64);             { Copy only CopyBytes bytes from the begining of the file. If destination exists it is overwriten }
-VAR FDst, FSrc: File;    {TODO 5: Convert this from  File to TFileStream }
-    Buf: array[1..128*KB] of Byte;
+   We could use also Indy WinApi.CopyFile: https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-copyfile?redirectedfrom=MSDN
+   }
+procedure CopyFilePortion(CONST SourceName, DestName: string; CONST CopyBytes: int64);
+VAR FDst, FSrc: File;    {TODO 2: Use TFileStream instead of File }
+    Buf: array[1..10*MB] of Byte;
     NumRead, NumWritten: Integer;
 begin
  NumWritten:= 0;
  TRY
    { SOURCE FILE }
    AssignFile(FSrc, SourceName);
-   FileMode:= fmOpenRead;                                                                          { Access mode on files opened by the Reset procedure. Be sure to reset FileMode before calling Reset with a read-only file. }
-   Reset     (FSrc, 1);                                                                            { In Delphi code, Reset opens the existing external file with the name assigned to F using the mode specified by the global FileMode variable. An error results if no existing external file of the given name exists or if the file cannot be opened with the current file mode. If F is already open, it is first closed and then reopened. The current file position is set to the beginning of the file.  }
+   FileMode:= fmOpenRead;                           { Access mode on files opened by the Reset procedure. Be sure to reset FileMode before calling Reset with a read-only file. }
+   Reset     (FSrc, 1);                             { In Delphi code, Reset opens the existing external file with the name assigned to F using the mode specified by the global FileMode variable. An error results if no existing external file of the given name exists or if the file cannot be opened with the current file mode. If F is already open, it is first closed and then reopened. The current file position is set to the beginning of the file.  }
 
    { DESTINATION FILE }
    AssignFile(FDst, DestName);
-   Rewrite(FDst, 1);                                                                               { In Delphi code, Rewrite creates a new external file with the name assigned to F. F is a variable of any file type associated with an external file using AssignFile. RecSize is an optional expression that can be specified only if F is an untyped file. If F is an untyped file, RecSize specifies the record size to be used in data transfers. If RecSize is omitted, a default record size of 128 bytes is assumed. If an external file with the same name already exists, it is deleted and a new empty file is created in its place. }
+   Rewrite(FDst, 1);                                { In Delphi code, Rewrite creates a new external file with the name assigned to F. F is a variable of any file type associated with an external file using AssignFile. RecSize is an optional expression that can be specified only if F is an untyped file. If F is an untyped file, RecSize specifies the record size to be used in data transfers. If RecSize is omitted, a default record size of 128 bytes is assumed. If an external file with the same name already exists, it is deleted and a new empty file is created in its place. }
 
    REPEAT
     BlockRead (FSrc, Buf, sizeof(Buf), NumRead);
@@ -2716,8 +2836,8 @@ begin
 end;
 
 
-
-{ Append Segment to Master.  Separator is a text (ex CRLF) that will be added before Segment files if SeparatorFirst= true }
+{ Append Segment to Master.
+  Separator is a text (ex CRLF) that will be added before Segment files if SeparatorFirst= true }
 procedure AppendTo(CONST MasterFile, SegmentFile, Separator: string; SeparatorFirst: Boolean= TRUE);
 VAR
    MasterStream, SegmentStream: TFileStream;
@@ -2741,13 +2861,13 @@ begin
   TRY
     SegmentStream:= TFileStream.Create(SegmentFile, fmOpenRead or fmShareDenyWrite);
     TRY
-      MasterStream.Position:= MasterStream.Size;                                                    { Move cursor at the end of the file }
-      if SeparatorFirst             { Add separator before Segment }
+      MasterStream.Position:= MasterStream.Size;   { Move cursor at the end of the file }
+      if SeparatorFirst                            { Add separator before Segment }
       then AddSeparator;
 
       MasterStream.CopyFrom(SegmentStream, 0);
 
-      if NOT SeparatorFirst       { Add separator after Segment }
+      if NOT SeparatorFirst                        { Add separator after Segment }
       then AddSeparator;
 
     FINALLY
@@ -2759,7 +2879,9 @@ begin
 end;
 
 
-procedure MergeFiles(CONST Input1, Input2, Output, Separator: string; SeparatorFirst: Boolean= TRUE);        { Merge file 'Input1' and file 'Input2' in a new file 'Output'. So, the difference between this procedure and AppendTo is that this proc does not modify the original input file(s) }
+{ Merge file 'Input1' and file 'Input2' in a new file 'Output'.
+  So, the difference between this procedure and AppendTo is that this proc does not modify the original input file(s) }
+procedure MergeFiles(CONST Input1, Input2, Output, Separator: string; SeparatorFirst: Boolean= TRUE);
 begin
  FileCopyTo(Input1, Output, TRUE);
  AppendTo(Output, Input2, Separator, SeparatorFirst);
@@ -2823,7 +2945,8 @@ begin
 end;
 
 
-function _validateForFileOperation(CONST sPath: string): Boolean;                                  { Ensure the current path is valid and can be used with 'FileOperation' }
+{ Ensure the current path is valid and can be used with 'FileOperation' }
+function _validateForFileOperation(CONST sPath: string): Boolean;
 begin
   Result:=
       (sPath <> 'Control Panel')
@@ -2833,9 +2956,9 @@ begin
 end;
 
 
-function FileOperation(CONST Source, Dest : string; Op, Flags: Integer): Boolean;
 { Performs: Copy, Move, Delete, Rename on files + folders via WinAPI.
   Example: FileOperation(FileOrFolder, '', FO_DELETE, FOF_ALLOWUNDO)  }
+function FileOperation(CONST Source, Dest : string; Op, Flags: Integer): Boolean;
 VAR
   SHFileOpStruct : TSHFileOpStruct;
   src, dst : string;
@@ -2871,32 +2994,34 @@ end;
 
 
 {--------------------------------------------------------------------------------------------------
-                                DELETE FOLDER
+   DELETE FOLDER
 --------------------------------------------------------------------------------------------------}
+{ Deletes all files (only files!) in the specified folder and subfolders, but don't delete the folder itself or the subfolders.
+  Works with UNC paths }
 procedure EmptyDirectory(CONST Path: string);
-{ Deletes all files (only files!) in the specified folder and subfolders, but don't delete the folder itself or the subfolders. }
-// Works with UNC paths
 begin
  if System.SysUtils.DirectoryExists(Path) then
   begin
    TDirectory.Delete(Path, TRUE);
-   Sleep(80); { We need a delay here because the TDirectory.Delete is asynchron. The function seems to return before it finished deleting the folder. Details: http://stackoverflow.com/questions/42809389/tdirectory-delete-seems-to-be-asynchronous?noredirect=1#comment72732153_42809389 }
+   Sleep(80);        { We need a delay here because the TDirectory.Delete is asynchron. The function seems to return before it finished deleting the folder. Details: http://stackoverflow.com/questions/42809389/tdirectory-delete-seems-to-be-asynchronous?noredirect=1#comment72732153_42809389 }
    if ForceDirectories(Path) < 0
    then raise exception.Create('EmptyDirectory - Cannot reconstruct directory!');
   end;
 end;
 
 
-procedure DeleteFolder(CONST Path: string);   // Works with UNC paths
+{ DeleteFolder should be silent if folder not found.
+  Works with UNC paths. }
+procedure DeleteFolder(CONST Path: string);
 begin
  if DirectoryExists(Path)
- then TDirectory.Delete(Path, TRUE);                                                               { DeleteFolder should be silent if folder not found }
+ then TDirectory.Delete(Path, TRUE);
 end;
 
 
+{ Delete all empty folders / sub-folders (any sub level) under the provided "rootFolder".
+  Works with UNC paths. }
 procedure RemoveEmptyFolders(const RootFolder: string);
-{ Delete all empty folders / sub-folders (any sub level) under the provided "rootFolder"
- // Works with UNC paths }
 var
   SRec: TSearchRec;
   listDir: TStringList;
@@ -2976,21 +3101,14 @@ end;
 
 
 
+{--------------------------------------------------------------------------------------------------
+   LIST FILES/FOLDERS
+--------------------------------------------------------------------------------------------------}
 
-
-
-
-
-
-
-
-
-
-{ FIND FOLDERS }
-function ListDirectoriesOf(CONST aFolder: string; CONST ReturnFullPath, DigSubdirectories: Boolean): TStringList;
 { if DigSubdirectories is false, it will return only the top level directories, else it will return also the subdirectories of subdirectories.
   Works also with Hidden/System folders. Source Marco Cantu Delphi 2010 HandBook
   Works with UNC paths}
+function ListDirectoriesOf(CONST aFolder: string; CONST ReturnFullPath, DigSubdirectories: Boolean): TStringList;
 VAR
   i: Integer;
   strPath: string;
@@ -3012,7 +3130,6 @@ begin
   for i:= 0 to Result.Count-1 DO
    Result[i]:= ExtractLastFolder(Result[i]);
 end;
-
 
 
 function ListFilesAndFolderOf(CONST aFolder: string; CONST ReturnFullPath: Boolean): TStringList;
@@ -3043,9 +3160,6 @@ begin
 end;
 
 
-
-{ FIND FILES }
-function ListFilesOf(CONST aFolder, FileType: string; CONST ReturnFullPath, DigSubdirectories: Boolean): TStringList;
 { If DigSubdirectories is false, it will return only the top level files,
   else it will return also the files in subdirectories of subdirectories.
   If FullPath is true the returned files will have full path.
@@ -3054,6 +3168,7 @@ function ListFilesOf(CONST aFolder, FileType: string; CONST ReturnFullPath, DigS
   Based on code from Marco Cantu Delphi 2010 HandBook.
 
   Works with UNC paths. }
+function ListFilesOf(CONST aFolder, FileType: string; CONST ReturnFullPath, DigSubdirectories: Boolean): TStringList;
 VAR
   i: Integer;
   s: string;
@@ -3161,32 +3276,8 @@ end;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 {--------------------------------------------------------------------------------------------------
-                                  DRIVE
+   DRIVE
 --------------------------------------------------------------------------------------------------}
 function GetVolumeLabel(CONST Drive: Char): string;
 var
@@ -3213,9 +3304,6 @@ begin
 end;
 
 
-
-
-
 function GetDriveType(CONST Path: string): Integer;   { Path can be something like 'C:\' or '\\netdrive\'. The folder MUST be trailed!!!! }
 begin
  Result:= winapi.windows.GetDriveType(PChar(Trail(Path)));                                   { Help page: https://msdn.microsoft.com/en-us/library/windows/desktop/aa364939%28v=vs.85%29.aspx }
@@ -3236,8 +3324,10 @@ begin
 end;
 
 
-{ not tested with network drives! }
-function DiskInDrive(CONST Path: string): Boolean;                                                  { From www.gnomehome.demon.nl/uddf/pages/disk.htm#disk0 . Also see http://community.borland.com/article/0,1410,15921,00.html }
+{ Not tested with network drives!
+  Source www.gnomehome.demon.nl/uddf/pages/disk.htm#disk0 .
+  Also see community.borland.com/article/0,1410,15921,00.html }
+function DiskInDrive(CONST Path: string): Boolean;
 VAR
    DriveNumber: Byte;
    DriveType: Integer;
@@ -3270,30 +3360,6 @@ begin
   END;
 END;
 
-(*
-function DriveProtected(CONST Drive: Char):  Boolean;                                               { Attempt to create temporary file on specified drive. If created, the temporary file is deleted. see: http://stackoverflow.com/questions/15312704/gettempfilename-creates-an-empty-file }
-VAR
-   ErrorMode: Word;
-   PathName : STRING;
-   TempName: Array[0..MAX_PATH] of char;
-begin
- Result:= FALSE;                                                                                    { I need this here because of SEM_FAILCRITICALERRORS }
- ErrorMode := SetErrorMode(SEM_FAILCRITICALERRORS);
- TRY
-   if NOT ValidDriveLetter(Drive)
-   then RAISE exception.Create('Invalid drive: '+ Drive);
-
-   PathName := Drive + ':\';
-   winapi.Windows.GetTempFileName(PChar(PathName), nil, 0, TempName);
-
-   Result:= (GetLastError = WinApi.Windows.ERROR_WRITE_PROTECT);                                    { GetLastError could be ERROR_PATH_NOT_FOUND but that is ignored here. }
-   if NOT Result
-   then Result:= NOT DeleteFile(TempName);                                                          { If file cannot be deleted, then the disk is write protected, or possibly the media is absent }
- FINALLY
-   SetErrorMode(ErrorMode);
- END
-END;
-*)
 
 function DriveProtected(CONST Drive: Char):  Boolean;                                               { Attempt to create temporary file on specified drive. If created, the temporary file is deleted. see: http://stackoverflow.com/questions/15312704/gettempfilename-creates-an-empty-file }
 VAR
@@ -3306,14 +3372,15 @@ begin
 END;
 
 
-
-function ValidDriveLetter(CONST Drive: Char): Boolean;                                              { Returns false if the drive letter is not in ['A'..'Z'] }
+{ Returns false if the drive letter is not in ['A'..'Z'] }
+function ValidDriveLetter(CONST Drive: Char): Boolean;
 begin
  Result:= CharInSet(Upcase(Drive), ['A'..'Z']);
 end;
 
 
-function ValidDrive(CONST Drive: Char): Boolean;                                                    {  Peter Below (TeamB). http://www.codinggroups.com/borland-public-delphi-rtl-win32/7618-windows-no-disk-error.html }
+{ Source: TeamB }
+function ValidDrive(CONST Drive: Char): Boolean;
 VAR mask: String;
     sRec: TSearchRec;
     oldMode: Cardinal;
@@ -3321,8 +3388,8 @@ VAR mask: String;
 begin
  oldMode:= SetErrorMode( SEM_FAILCRITICALERRORS );
  mask:= Drive+ ':\*.*';
- {$I-}                                                                                              { don't raise exceptions if we fail }
- retCode:= FindFirst( mask, faAnyfile, SRec );                                                      { %%%% THIS IS VERY SLOW IF THE DISK IS NOT IN DRIVE !!!!!! }
+ {$I-}                                                      { don't raise exceptions if we fail }
+ retCode:= FindFirst( mask, faAnyfile, SRec );              { %%%% THIS IS VERY SLOW IF THE DISK IS NOT IN DRIVE !!!!!! }
  if retcode= 0
  then FindClose( SRec );
  {$I+}
@@ -3331,7 +3398,7 @@ begin
 end;
 
 
-function DriveFreeSpace(CONST Drive: CHAR): Int64;                                                  { old name: DiskFreeChar }
+function DriveFreeSpace(CONST Drive: CHAR): Int64;
 VAR DriveNo: Byte;
 begin
  DriveNo:= Drive2Byte(drive);
@@ -3349,9 +3416,10 @@ begin
 end;
 
 
-function DriveFreeSpaceF(CONST FullPath: string): Int64;                                            { Same as DriveFreeSpace but this accepts a full filename/directory path. It will automatically extract the drive }
+{ Same as DriveFreeSpace but this accepts a full filename/directory path. It will automatically extract the drive }
+function DriveFreeSpaceF(CONST FullPath: string): Int64;
 begin
- Result:= DriveFreeSpace(System.IOUtils.TDirectory.GetDirectoryRoot(FullPath)[1]);                  { GetDirectoryRoot returns something like:  'C:\' }
+ Result:= DriveFreeSpace(System.IOUtils.TDirectory.GetDirectoryRoot(FullPath)[1]);                  { GetDirectoryRoot returns something like: 'C:\' }
 end;
 
 
@@ -3363,7 +3431,9 @@ end;
 {--------------------------------------------------------------------------------------------------
    DRIVE - Conversion
 --------------------------------------------------------------------------------------------------}
-function ExtractDriveLetter(CONST Path: string): char;                                             { Returns #0 for invalid or network paths }
+
+{ Returns #0 for invalid or network paths }
+function ExtractDriveLetter(CONST Path: string): char;
 VAR s: string;
 begin
  Result:= #0;
@@ -3374,17 +3444,18 @@ begin
 end;
 
 
-function Drive2Byte(CONST Drive: char): Byte;                                                      { Converts the drive letter to the number of that drive. Example drive "A:" is 1 and drive "C:" is 3 }
+{ Converts the drive letter to the number of that drive. Example drive "A:" is 1 and drive "C:" is 3 }
+function Drive2Byte(CONST Drive: char): Byte;
 begin
  Result:= ORD( UpCase(Drive) )- ORD('A')+ 1;                                                       { 'A'=1, 'B'=2,  }
 end;
 
 
-function Drive2Char(CONST DriveNumber: Byte): Char;                                                { Converts the drive number to the letter of that drive. Example drive 1 is "A:" floppy }
+{ Converts the drive number to the letter of that drive. Example drive 1 is "A:" floppy }
+function Drive2Char(CONST DriveNumber: Byte): Char;
 begin
  Result:= Char( DriveNumber+ ORD('A')- 1);                                                         { 'A'=1, 'B'=2,  }
 end;
-
 
 
 function GetLogicalDrives: TStringDynArray;
@@ -3410,210 +3481,51 @@ end;
 
 
 
+procedure SetCompressionAtr(const FileName: string; const CompressionFormat: USHORT= 1);
+CONST
+  FSCTL_SET_COMPRESSION = $9C040;
+  {
+  COMPRESSION_FORMAT_NONE = 0;
+  COMPRESSION_FORMAT_DEFAULT = 1;
+  COMPRESSION_FORMAT_LZNT1 = 2; }
+VAR
+   Handle: THandle;
+   Flags: DWORD;
+   BytesReturned: DWORD;
+begin
+  if DirectoryExists(FileName)
+  then Flags := FILE_FLAG_BACKUP_SEMANTICS
+  else
+    if FileExists(FileName)
+    then Flags := 0
+    else raise exception.CreateFmt('%s does not exist', [FileName]);
+
+  Handle := CreateFile(PChar(FileName), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING, Flags, 0);
+  if Handle=0
+  then RaiseLastOSError;
+
+  if not DeviceIoControl(Handle, FSCTL_SET_COMPRESSION, @CompressionFormat, SizeOf(Comp), nil, 0, BytesReturned, nil) then
+   begin
+    CloseHandle(Handle);
+    RaiseLastOSError;
+   end;
+
+  CloseHandle(Handle);
+end;
+
+
+ 
+
+
+
+
 
 
 
 
 {--------------------------------------------------------------------------------------------------
-   SPECIAL PATHS
+   SHORTEN TEXT
 --------------------------------------------------------------------------------------------------}
-function GetMyDocuments: string;
-begin
- Result:= Trail(GetSpecialFolder(CSIDL_PERSONAL));
-end;
-
-
-function GetMyPictures: string;
-VAR s: string;
-begin
- s:= GetSpecialFolder(CSIDL_MYPICTURES);
- if s= ''
- then Result:= ''
- else Result:= Trail(GetSpecialFolder(CSIDL_MYPICTURES));
-end;
-
-
-function GetDesktopFolder: string;
-begin
- Result:= Trail(GetSpecialFolder(CSIDL_DESKTOPDIRECTORY));
-end;
-
-
-function GetStartMenuFolder: string;
-begin
- Result:= Trail(GetSpecialFolder(CSIDL_STARTMENU));
-end;
-
-
-
-
-
-{--------------------------------------------------------------------------------------------------
-                                SHELL FOLDERS
---------------------------------------------------------------------------------}
-function GetSpecialFolderReg (OS_SpecialFolder: string): string;                                   { Retrieving the shell folders }
-{ DOCS:
-  Calling the API function is safer, because the registry structure may change. It has not changed in W2k, but it may happen.
-  SHGetFolderSpecialLocation uses the registry now, but may read its data from any other structure in a future version of Windows.
-  The published API is the "right" way to access these data, because Microsoft has to support it for a long time.
-  Writing application that use undocumented features expose them to compatibility issues.
-  The folders retrieved should include:
-    cmShellAppData =    'AppData';
-    cmShellCache =      'Cache';
-    cmShellCookies =    'Cookies';
-    cmShellDesktop =    'Desktop';
-    cmShellFavorites =  'Favorites';
-    cmShellFonts =      'Fonts';
-    cmShellHistory =    'History';
-    cmShellLocalApp =   'Local AppData';
-    cmShellNetHood =    'NetHood';
-    cmShellPersonal =   'Personal';
-    cmShellPrintHood =  'PrintHood';
-    cmShellPrograms =   'Programs';
-    cmShellRecent =     'Recent';
-    cmShellSendTo =     'SendTo';
-    cmShellStartMenu =  'Start Menu';
-    cmShellStartUp =    'Startup';
-    cmShellTemplates =  'Templates';                                          }
-VAR Reg: TRegistry;
-begin
-  Result:= '';
-  reg := TRegistry.Create(KEY_READ);
-  TRY
-   reg.RootKey := HKEY_CURRENT_USER;
-   reg.OpenKey('Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders', FALSE);
-   Result:= reg.ReadString(OS_SpecialFolder);                                                      { for example OS_SpecialFolder= 'Start Menu' }
-   reg.CloseKey;
-  FINALLY
-   FreeAndNil(reg);
-  END;
-end;
-
-
-function GetSpecialFolder_old (CSIDL: Integer): WideString;                                        { DEL }
-CONST SHGFP_TYPE_CURRENT = 0;
-VAR path: array [0..Max_Path] of char;
-begin
- if ShGetFolderPath(0, CSIDL, 0, SHGFP_TYPE_CURRENT, @path[0])= S_ok
- then Result:= Trail (Path)
- else Result:= '';
-end;
-
-
-function GetSpecialFolder (CSIDL: Integer; ForceFolder: Boolean = FALSE): string;
-{--------------------------------------------------------------------------------------------------
- uses SHFolder
- As recommended by Borland in this doc: VistaUACandDelphi.pdf
- Minimum operating systems: Windows 95 with Internet Explorer 5.0, Windows 98 with Internet Explorer 5.0, Windows 98 Second Edition (SE), Windows NT 4.0 with Internet Explorer 5.0, Windows NT 4.0 with Service Pack 4 (SP4)
-
- SPECIAL FOLDERS CONSTANTS:
-   Full list of 'Special folder constants' are available here:  http://msdn.microsoft.com/en-us/library/bb762494(VS.85).aspx
-   'Special folder constants' are declared in ShlObj and SHFolder (as duplicates). SHFolder.pas is the interface for Shfolder.dll.
---------------------------------------------------------------------------------------------------}
-VAR i: Integer;
-begin
- SetLength(Result, MAX_PATH);
- if ForceFolder
- then ShGetFolderPath(0, CSIDL OR CSIDL_FLAG_CREATE, 0, 0, PChar(Result))
- else ShGetFolderPath(0, CSIDL, 0, 0, PChar(Result));
- i:= Pos(#0, Result);
- if i> 0
- then SetLength(Result, pred(i));
-
- Result:= Trail (Result);
-end;
-
-
-function GetSpecialFolders: TStringList;                                                           { Get a list of ALL special folders. Used by Uninstaller. }
-begin
- Result:= TStringList.Create;                                                           //  FROM ShlObj.pas
- Result.Add(GetSpecialFolder(CSIDL_DESKTOP                 , FALSE));                  // <desktop>
- Result.Add(GetSpecialFolder(CSIDL_INTERNET                , FALSE));                  // Internet Explorer (icon on desktop)
- Result.Add(GetSpecialFolder(CSIDL_PROGRAMS                , FALSE));                  // Start Menu\Programs
- Result.Add(GetSpecialFolder(CSIDL_CONTROLS                , FALSE));                  // My Computer\Control Panel
- Result.Add(GetSpecialFolder(CSIDL_PRINTERS                , FALSE));                  // My Computer\Printers
- Result.Add(GetSpecialFolder(CSIDL_PERSONAL                , FALSE));                  // My Documents
- Result.Add(GetSpecialFolder(CSIDL_FAVORITES               , FALSE));                  // <user name>\Favorites
- Result.Add(GetSpecialFolder(CSIDL_STARTUP                 , FALSE));                  // Start Menu\Programs\Startup
- Result.Add(GetSpecialFolder(CSIDL_RECENT                  , FALSE));                  // <user name>\Recent
- Result.Add(GetSpecialFolder(CSIDL_SENDTO                  , FALSE));                  // <user name>\SendTo
- Result.Add(GetSpecialFolder(CSIDL_BITBUCKET               , FALSE));                  // <desktop>\Recycle Bin
- Result.Add(GetSpecialFolder(CSIDL_STARTMENU               , FALSE));                  // <user name>\Start Menu
- Result.Add(GetSpecialFolder(CSIDL_MYDOCUMENTS             , FALSE));                  // Personal was just a silly name for My Documents
- Result.Add(GetSpecialFolder(CSIDL_MYMUSIC                 , FALSE));                  // "My Music" folder
- Result.Add(GetSpecialFolder(CSIDL_MYVIDEO                 , FALSE));                  // "My Videos" folder
- Result.Add(GetSpecialFolder(CSIDL_DESKTOPDIRECTORY        , FALSE));                  // <user name>\Desktop
- Result.Add(GetSpecialFolder(CSIDL_DRIVES                  , FALSE));                  // My Computer
- Result.Add(GetSpecialFolder(CSIDL_NETWORK                 , FALSE));                  // Network Neighborhood (My Network Places)
- Result.Add(GetSpecialFolder(CSIDL_NETHOOD                 , FALSE));                  // <user name>\nethood
- Result.Add(GetSpecialFolder(CSIDL_FONTS                   , FALSE));                  // windows\fonts
- Result.Add(GetSpecialFolder(CSIDL_TEMPLATES               , FALSE));
- Result.Add(GetSpecialFolder(CSIDL_COMMON_STARTMENU        , FALSE));                  // All Users\Start Menu
- Result.Add(GetSpecialFolder(CSIDL_COMMON_PROGRAMS         , FALSE));                  // All Users\Start Menu\Programs
- Result.Add(GetSpecialFolder(CSIDL_COMMON_STARTUP          , FALSE));                  // All Users\Startup
- Result.Add(GetSpecialFolder(CSIDL_COMMON_DESKTOPDIRECTORY , FALSE));                  // All Users\Desktop
- Result.Add(GetSpecialFolder(CSIDL_APPDATA                 , FALSE));                  // <user name>\Application Data
- Result.Add(GetSpecialFolder(CSIDL_PRINTHOOD               , FALSE));                  // <user name>\PrintHood
- Result.Add(GetSpecialFolder(CSIDL_LOCAL_APPDATA           , FALSE));                  // <user name>\Local Settings\Applicaiton Data (non roaming)
- Result.Add(GetSpecialFolder(CSIDL_ALTSTARTUP              , FALSE));                  // non localized startup
- Result.Add(GetSpecialFolder(CSIDL_COMMON_ALTSTARTUP       , FALSE));                  // non localized common startup
- Result.Add(GetSpecialFolder(CSIDL_COMMON_FAVORITES        , FALSE));
- Result.Add(GetSpecialFolder(CSIDL_INTERNET_CACHE          , FALSE));
- Result.Add(GetSpecialFolder(CSIDL_COOKIES                 , FALSE));
- Result.Add(GetSpecialFolder(CSIDL_HISTORY                 , FALSE));
- Result.Add(GetSpecialFolder(CSIDL_COMMON_APPDATA          , FALSE));                  // All Users\Application Data
- Result.Add(GetSpecialFolder(CSIDL_WINDOWS                 , FALSE));                  // GetWindowsDirectory()
- Result.Add(GetSpecialFolder(CSIDL_SYSTEM                  , FALSE));                  // GetSystemDirectory()
- Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILES           , FALSE));                  // C:\Program Files
- Result.Add(GetSpecialFolder(CSIDL_MYPICTURES              , FALSE));                  // C:\Program Files\My Pictures
- Result.Add(GetSpecialFolder(CSIDL_PROFILE                 , FALSE));                  // USERPROFILE
- Result.Add(GetSpecialFolder(CSIDL_SYSTEMX86               , FALSE));                  // x86 system directory on RISC
- Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILESX86        , FALSE));                  // x86 C:\Program Files on RISC
- Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILES_COMMON    , FALSE));                  // C:\Program Files\Common
- Result.Add(GetSpecialFolder(CSIDL_PROGRAM_FILES_COMMONX86 , FALSE));                  // x86 Program Files\Common on RISC
- Result.Add(GetSpecialFolder(CSIDL_COMMON_TEMPLATES        , FALSE));                  // All Users\Templates
- Result.Add(GetSpecialFolder(CSIDL_COMMON_DOCUMENTS        , FALSE));                  // All Users\Documents
- Result.Add(GetSpecialFolder(CSIDL_COMMON_ADMINTOOLS       , FALSE));                  // All Users\Start Menu\Programs\Administrative Tools
- Result.Add(GetSpecialFolder(CSIDL_ADMINTOOLS              , FALSE));                  // <user name>\Start Menu\Programs\Administrative Tools
- Result.Add(GetSpecialFolder(CSIDL_CONNECTIONS             , FALSE));                  // Network and Dial-up Connections
- Result.Add(GetSpecialFolder(CSIDL_COMMON_MUSIC            , FALSE));                  // All Users\My Music
- Result.Add(GetSpecialFolder(CSIDL_COMMON_PICTURES         , FALSE));                  // All Users\My Pictures
- Result.Add(GetSpecialFolder(CSIDL_COMMON_VIDEO            , FALSE));                  // All Users\My Video
- Result.Add(GetSpecialFolder(CSIDL_RESOURCES               , FALSE));                  // Resource Direcotry
- Result.Add(GetSpecialFolder(CSIDL_RESOURCES_LOCALIZED     , FALSE));                  // Localized Resource Direcotry
- Result.Add(GetSpecialFolder(CSIDL_COMMON_OEM_LINKS        , FALSE));                  // Links to All Users OEM specific apps
- Result.Add(GetSpecialFolder(CSIDL_CDBURN_AREA             , FALSE));                  // USERPROFILE\Local Settings\Application Data\Microsoft\CD Burning
- Result.Add(GetSpecialFolder(CSIDL_COMPUTERSNEARME         , FALSE));                  // Computers Near Me (computered from Workgroup membership)
- Result.Add(GetSpecialFolder(CSIDL_FLAG_CREATE             , FALSE));                  // combine with CSIDL_ value to force folder creation in SHGetFolderPath
- Result.Add(GetSpecialFolder(CSIDL_FLAG_DONT_VERIFY        , FALSE));                  // combine with CSIDL_ value to return an unverified folder path
- Result.Add(GetSpecialFolder(CSIDL_FLAG_DONT_UNEXPAND      , FALSE));                  // combine with CSIDL_ value to avoid unexpanding environment variables
- Result.Add(GetSpecialFolder(CSIDL_FLAG_NO_ALIAS           , FALSE));                  // combine with CSIDL_ value to insure non-alias versions of the pidl
- Result.Add(GetSpecialFolder(CSIDL_FLAG_PER_USER_INIT      , FALSE));                  // combine with CSIDL_ value to indicate per-user init (eg. upgrade)
- Result.Add(GetSpecialFolder(CSIDL_FLAG_MASK               , FALSE));                  // mask for all possible flag values
-end;
-
-
-
-function FolderIsSpecial(const Path: string): Boolean;                                             { Returns True if the parameter is a special folder such us 'c:\My Documents' }
-VAR s: string;
-    SpecialFolders: TStringList;
-begin
- Result:= FALSE;
- SpecialFolders:= GetSpecialFolders;
- TRY
-  //del SpecialFolders.SaveToFile(AppDir+ 'special folders.txt');
-  for s in SpecialFolders DO
-   if SameFolder(Path, s)
-   then EXIT(TRUE);
- FINALLY
-  FreeAndNil(SpecialFolders);
- END;
-end;
-
-
-
-
-
 
 { Only show the start and the end of the path with ellipses in-between
   Also exists:
@@ -3636,123 +3548,5 @@ end;
 
 
 
-
-
-
-
-end.(*==================================================================================================================
-
-
-
-
-
-
-
-
-
-
-(*
-function DeleteFolderSlow(CONST sPath: string; ToRecycle: Boolean): Boolean;
-{ DOC:
-       BASED ON TFindFile.
-
-       Deletes all files in the specified folder, including the folder itself.
-       It will search also in subfolders.
-       This slower but BETTER than JCLFileUtils.DeleteDirectory which only deletes the content of the folder but not the folder itself
-
-  ALSO SEE:
-       ccCore.DelTree
-       JCLFileUtils.DeleteDirectory
-}
-VAR AllFiles: TFindFile;
-begin
- if NOT DirectoryExists(sPath) then                                                                { if the folder does not exists then I don't need to delete it. nice :) }
-  begin
-   Result:= TRUE;
-   EXIT;
-  end;
-
- AllFiles:= TFindFile.Create(NIL);
- TRY
-  AllFiles.Path:= sPath;
-  Result:= AllFiles.DeleteTree(ToRecycle);
- FINALLY
-  FreeAndNil(AllFiles);
- END;
-end;  *)
-
-{
-function GetPathIniFile(CONST AppName, IniFileName: string): string;
-begin
- Result:= GetAppDataFolderForce(AppName)+ IniFileName;
-end;
-
-function GetPathIniFileAll(CONST AppName, IniFileName: string): string;                            { intoarce calea fisierului ini pt 'All users'
-begin
- Result:= GetAppDataFolderAll(AppName)+ IniFileName;
-end;
-}
-
-//procedure Get_LocalApp_DataPath;     Was replaced by GetSpecialDirectory_byShell(CSIDL_LOCAL_APPDATA)
-
-
-
-
-
-
-
-
-
-
-
-
-(*
-DEL DEL DEL  -  obsolete
-function ReadBinaryString(VAR F: File; Lungime: integer): AnsiString;
-VAR Buf : array of Ansichar;
-    i: Integer;
-begin
- if Lungime< 0
- then raise exception.Create('Invalid string length')
- else
-   if Lungime= 0 then EXIT('');
-
- { Read to buffer }
- SetLength(Buf, Lungime);
- BlockRead(F, Buf[0], Lungime);
-
- { Transfer data from buffer }
- for i:= 0 to Lungime-1
-  DO Result:= Result+ Buf[i];
-end;
-
-
-function ReadBinaryString(VAR F: File): AnsiString;
-VAR Lungime: integer;
-begin
- BlockRead(F, Lungime, SizeOf(Integer));                                                           { READ STRING'S LENGTH }    { 4 octeti alocati pentru a stoca in ei dimensiunea sirului }
- Result:= ReadBinaryString(F, Lungime);                                                            { READ STRING'S BODY }
-end;
-
-
-procedure WriteBinaryString(VAR F: File; Ansi: AnsiString);
-VAR Lungime, i: integer;
-    Buf : array of Ansichar;
-begin
- { WRITE STRING'S LENGTH }
- Lungime:= length(Ansi);
- BlockWrite(F, Lungime, SizeOf(Longint));                                                          { LongInt is a fundamental integer type, which means that its size is constant across all CPU platforms. }
-
- { WRITE STRING'S BODY }
- if Lungime> 0 then
-  begin
-   SetLength(Buf, Lungime);
-   for i:= 0 to Lungime-1
-    DO Buf[i]:= Ansi[i+1];
-   BlockWrite(F, Buf[0], Lungime);
-  end;
-end;
-*)
-
-
+end.
 

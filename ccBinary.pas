@@ -1,21 +1,21 @@
 UNIT ccBinary;
 
-{=======================================================================================================================
+{=============================================================================================================
    CubicDesign
    2022-04-03
    See Copyright.txt
 
-   Contains:
-     String to hex, hex to string conversions (and many others)
-     Binary numbers swapping
-     Data serialization
-     Bit manipulation (set bit, etc)
-     Reverse bits
-     Endianess
+   Util functions for:
+    - String to hex, hex to string conversions (and many others)
+    - Binary numbers swapping
+    - Data serialization
+    - Bit manipulation (set bit, etc)
+    - Reverse bits
+    - Endianess
+    - etc
 
-   See also: AppControls v3.8.1\Sources\acUtils.pas
    See also lazarus TBits: https://wiki.freepascal.org/Bit_manipulation
-=======================================================================================================================}
+=============================================================================================================}
 
 INTERFACE
 

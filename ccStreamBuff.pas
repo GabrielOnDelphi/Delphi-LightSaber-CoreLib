@@ -1,37 +1,50 @@
 UNIT ccStreamBuff;
+
+{=============================================================================================================
+   CubicDesign
+   2022-04-03
+
+   Extends TBufferedFileStream.
+   This class adds new functionality that does not exist in Delphi's original stream classes:
+   - Read/WriteBoolean
+   - Read/WriteString (Ansi/Unicode)
+   - Read/WriteInteger
+   - Read/WriteCardinal
+   - Read/WriteDate
+   - Read/Write mac files (inverted byte endianness)
+   - etc
+   It may be used as a drop-in replacement for TFileStream.
+
+=============================================================================================================
+   TBufferedFileStream:
+      TBufferedFileStream provides VERY fast reading/writing access to a file.
+      It is optimized for multiple consecutive small reads or writes.
+      TBufferedFileStream will not give performance gain, when there are random position reads or writes, or large reads or writes.
+
+   File Mode:
+      fmCreate        - Create a file with the given name. If a file with the given name exists, override the existing file and open it in write mode. Destroys any file that's already there. (size will be zero)
+      fmOpenRead      - Open the file for reading only.
+      fmOpenWrite     - Open the file for writing only. Writing to the file completely REPLACES the current contents.
+      fmOpenReadWrite - Open the file to modify the current contents rather than replace them.
+
+      Both fmOpenWrite and fmOpenReadWrite can be used to append a file except that fmOpenWrite won't allow reading the file.
+      One should remember to set the file position to the end of file prior writing it. Otherwise it will replace the existing data.
+
+     So use:
+       TCubicBuffStream.Create(FileName, fmOpenRead)                  -> to read
+       TCubicBuffStream.Create(FileName, fmOpenWrite OR fmCreate)     -> to write to existing or create new file if none exists
+     or use:
+       constructor CreateRead (FileName);                             -> to read
+       constructor CreateWrite(FileName);                             -> to write to existing or create new file if none exists
+
+   Speed
+     When reading character by character, the new System.Classes.TBufferedFileStream seems to be 210% faster than ccStreamBuffHefferman
+
+   Tester:
+     CubicCommonControls\Demo\cc StreamBuff\
+=============================================================================================================}
+
 {$WARN DUPLICATE_CTOR_DTOR OFF}
-
-{==================================================================================================
-  CubicDesign
-  2022-04-03
-
-  Replacement for ccStreamBuff by Hefferman.
-  When reading character by character, the new System.Classes.TBufferedFileStream seems to be 210% faster than ccStreamBuff (Test done under Sydney).
-
-  TBufferedFileStream adds buffering to the TFileStream.
-  This optimizes multiple consecutive small writes or reads. TBufferedFileStream will not give performance gain, when there are random position reads or writes, or large reads or writes.
-  TBufferedFileStream may be used as a drop in replacement for TFileStream.
-
-
-  File Mode:
-     fmCreate        - Create a file with the given name. If a file with the given name exists, override the existing file and open it in write mode. Destroys any file that's already there. (size will be zero)
-     fmOpenRead      - Open the file for reading only.
-     fmOpenWrite     - Open the file for writing only. Writing to the file completely REPLACES the current contents.
-     fmOpenReadWrite - Open the file to modify the current contents rather than replace them.
-
-  Both fmOpenWrite and fmOpenReadWrite can be used to append a file except that fmOpenWrite won't allow reading the file.
-  One should remember to set the file position to the end of file prior writing it. Otherwise it will replace the existing data.
-
-  So use:
-    TCubicBuffStream.Create(FileName, fmOpenRead)                  -> to read
-    TCubicBuffStream.Create(FileName, fmOpenWrite OR fmCreate)     -> to write to existing or create new file if none exists
-  or use:
-    constructor CreateRead (FileName);                             -> to read
-    constructor CreateWrite(FileName);                             -> to write to existing or create new file if none exists
-
-  Tester:
-    CubicCommonControls\Demo\cc StreamBuff\
-==================================================================================================}
 
 INTERFACE
 
@@ -40,7 +53,6 @@ USES
 
 TYPE
   TCubicBuffStream= class(System.Classes.TBufferedFileStream)
-    private
     public
      MagicNo: AnsiString; // Obsolete!
 
@@ -77,9 +89,10 @@ TYPE
      function  ReadStringUNoLen (CONST Len: Integer): string;
      function  ReadSmallInt: Smallint;
      function  ReadShortInt: ShortInt;
-     function  ReadBytes: TByteDynArray;
-     function  ReadSingle: Single;
+     function  ReadBytes   : TByteDynArray;
 
+     function  ReadSingle  : Single;
+     function  ReadDouble  : Double;
      {}
      procedure WriteUInt64   (const i: UInt64);
      procedure WriteInt64    (const i: Int64);
@@ -92,7 +105,8 @@ TYPE
      procedure WriteSmallInt (const s: SmallInt);
      procedure WriteShortInt (const s: ShortInt);
      procedure WriteBytes    (const Buffer: TByteDynArray);
-     procedure WriteSingle   (const Sngl: Single);
+     procedure WriteSingle   (const s: Single);
+     procedure WriteDouble   (const d: Double);
 
      { Header OLD }
      function  ReadMagicVer: Word;
@@ -128,7 +142,7 @@ function StringFromFileStart (CONST FileName: string; Count: Cardinal): AnsiStri
 
 IMPLEMENTATION
 USES
-   ccCore, ccINIFile, ccBinary;
+   ccCore, ccBinary;
 
 
 {--------------------------------------------------------------------------------------------------
@@ -185,7 +199,7 @@ end;
 
 constructor TCubicBuffStream.CreateRead(CONST FileName: string);
 begin
- inherited Create(FileName, fmOpenRead);
+ inherited Create(FileName, fmOpenRead, 1*mb);
 end;
 
 
@@ -309,7 +323,7 @@ function TCubicBuffStream.ReadStringA: AnsiString;
 VAR Len: Cardinal;
 begin
  ReadBuffer(Len, 4);                                                                         { First, find out how many characters to read }
- Assert(Len<= Size- Position, 'TReadCachedStream: Invalid string size!');
+ Assert(Len<= Size- Position, 'TReadCachedStream: String lenght > string size!');
  Result:= ReadStringA(Len);
 end;
 
@@ -586,16 +600,28 @@ end;
 
 
 
-{ SINGLE }
+{ FLOATS }
 
 function TCubicBuffStream.ReadSingle: Single;
 begin
  Read(Result, 4);
 end;
 
-procedure TCubicBuffStream.WriteSingle(CONST Sngl: Single);
+procedure TCubicBuffStream.WriteSingle(CONST s: Single);
 begin
- Write(sngl, 4);
+ Write(s, 4);
+end;
+
+
+
+function TCubicBuffStream.ReadDouble: Double;
+begin
+ Read(Result, 8);
+end;
+
+procedure TCubicBuffStream.WriteDouble(CONST d: Double);
+begin
+ Write(d, 8);
 end;
 
 
@@ -611,7 +637,6 @@ end;
 
 procedure TCubicBuffStream.WriteDate(CONST d: TDateTime);
 begin
- //VAR Temp: Double; Temp:= d;
  WriteBuffer(d, 8);  { The size of Double is 8 bytes }
 end;
 

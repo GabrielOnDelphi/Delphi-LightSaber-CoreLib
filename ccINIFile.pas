@@ -5,18 +5,18 @@ UNIT ccINIFile;
   2022-04-03
 
   Features:
-     * Extends the capabilities of TIniFile
-     * Functions for accessing application's default INI file.
+     - Extends the capabilities of TIniFile.
+     - Functions for easily accessing application's default INI file.
 
   Setup:
      Before using it you must set the ccAppData.AppName global var.
-     The class will use that name to automatically determine the INI file name/path which is %AppData%\AppName.Ini.
-     Example: If the AppName is set to "DelphiLightSaber" the ini file will be "c:\Users\UserName\AppData\Roaming\DelphiLightSaber\DelphiLightSaber.ini"
+     The class will use that name to automatically determine the INI file name/path which is %AppData%\AppData.AppName.Ini.
+     Example: If the AppData.AppName is set to "DelphiLightSaber" the ini file will be "c:\Users\UserName\AppData\Roaming\DelphiLightSaber\DelphiLightSaber.ini"
 
   Reminder: TIniFile limitations:
-     * Cannot put spaces at the beggining of a 'value'. The spaces will be trimmed. This behavior does not happen if you use a TMemInifile.      https://stackoverflow.com/questions/3702647/reading-inifile-to-stringlist-problem-spaces-problem
-     * Cannot handle quotes and enters
-     * Issues with Unicode strings
+     - Cannot put spaces at the beggining of a 'value'. The spaces will be trimmed. This behavior does not happen if you use a TMemInifile.      https://stackoverflow.com/questions/3702647/reading-inifile-to-stringlist-problem-spaces-problem
+     - Cannot handle quotes and enters
+     - Issues with Unicode strings
      Some of these limitations are not in TMemIniFile.
 =======================================================================================================================}
 
@@ -32,7 +32,6 @@ TYPE
     Style : TFontStyle;
     Color : TColor;
   end;
-  { PFontStruct= ^FontStruct; }
   
 TYPE
  TCubicIniFile = class(TIniFile)
@@ -42,13 +41,15 @@ TYPE
   public
     constructor Create (SectionName: string; ForcedPath: string= '');  virtual;
     class function AsString: string;
+    function  ValueExists(CONST Ident: string): Boolean;                         reintroduce; overload;
 
     { Data/Time }
-    function  ReadDate   (CONST Ident: string; Default: TDateTime): TDateTime;   reintroduce;   // http://docwiki.embarcadero.com/RADStudio/Sydney/en/Methods_(Delphi)
-    procedure WriteDate  (CONST Ident: string;   Value: TDateTime);              reintroduce;
+    function  ReadDateEx (CONST Ident: string; Default: TDateTime): TDateTime;
+    procedure WriteDateEx(CONST Ident: string;   Value: TDateTime);
 
-    { Data/Time OLD }
-    function  ValueExists(CONST Ident: string): Boolean;                         reintroduce; overload;
+    { OLD. BROKEN - Depends on user's FormatSettings }
+    function  ReadDate_   (CONST Ident: string; Default: TDateTime): TDateTime;    deprecated 'Use ReadDateEx instead';  // http://docwiki.embarcadero.com/RADStudio/Sydney/en/Methods_(Delphi)
+    procedure WriteDate_  (CONST Ident: string;   Value: TDateTime);               deprecated 'Use ReadDateEx instead';
 
     { String }
     function  Read       (CONST Ident: string; Default: string): string;         overload;
@@ -70,16 +71,14 @@ TYPE
     procedure Write      (CONST Ident: string; Font: FontStruct);                overload;
 
     { Float }      { Overrides existing method with a new version that does not require a section name }
-    function  Read       (const Ident: string; Default: Double): Double; {reintroduce;} overload;
-    procedure Write      (const Ident: string; Value: Double);           {reintroduce;} overload;
+    function  Read       (const Ident: string; Default: Double): Double; {reintroduce_;} overload;
+    procedure Write      (const Ident: string; Value: Double);           {reintroduce_;} overload;
 
     { Color }
     function  ReadColor  (CONST Ident: string; Default: TColor): TColor;
     procedure WriteColor (CONST Ident: string; Value: TColor);
   end;
 
-
-function AppIniFile: string;
 
 
 IMPLEMENTATION
@@ -99,7 +98,7 @@ constructor TCubicIniFile.Create(SectionName: string; ForcedPath: string= '');  
 VAR Path: string;
 begin
  if ForcedPath= ''
- then Path:= AppIniFile
+ then Path:= AppData.IniFile
  else Path:= ForcedPath;
 
  inherited Create(Path);
@@ -199,19 +198,34 @@ begin
   Result.ShortDateFormat:= 'YYYY-MM-DD';          // The date is saved in the ShortDateFormat. We don't care about LongDateFormat here
 end;
 
-{ The date format will not depend anymore on user's regional settings
+
+{ BUG!
+  https://stackoverflow.com/questions/20419347/delphi-inifiles-readdatetime
+
+  The date format will not depend anymore on user's regional settings
   Cannot be named simply Write because it will conflict with Write(Real). I had a case where it wrote Write(2.0) to the ini file as a date (1900-01-01)
   The Default MUST be in the 0.0 format otherwise the wrong function will be called (the one for integer) }
-procedure TCubicIniFile.WriteDate(CONST Ident: string; Value: TDateTime);
+procedure TCubicIniFile.WriteDate_(CONST Ident: string; Value: TDateTime);
 begin
   inherited WriteDate(FSection, Ident, Value);
   //WriteString(FSection, Ident, DateToStr(Value, GetUniversalDateFormat));
 end;
 
-
-function TCubicIniFile.ReadDate(CONST Ident: string; Default: TDateTime): TDateTime;   { The Default MUST be in the 0.0 format otherwise the wrong function will be called (the one for integer) }
+function TCubicIniFile.ReadDate_(CONST Ident: string; Default: TDateTime): TDateTime;   { The Default MUST be in the 0.0 format otherwise the wrong function will be called (the one for integer) }
 begin
   Result:= inherited ReadDate(FSection, Ident, default);
+end;
+
+
+
+procedure TCubicIniFile.WriteDateEx(CONST Ident: string; Value: TDateTime);
+begin
+  WriteFloat(FSection, Ident, Value);
+end;
+
+function TCubicIniFile.ReadDateEx(CONST Ident: string; Default: TDateTime): TDateTime;
+begin
+  Result:= TDateTime(ReadFloat(FSection, Ident, default));
 end;
 
 
@@ -283,20 +297,9 @@ end;
   Don't forget to force the app to save its INI file to disk before loading the file. }             { Old name: IniFileToString }
 class function TCubicIniFile.AsString: string;
 begin
- Result:= StringFromFile(AppIniFile);
+ Result:= StringFromFile(AppData.IniFile);
 end;
 
-
-{ Returns the name of the INI file (where we will write application's settings).
-  It is based on the name of the application.
-  Example: c:\Documents and Settings\Bere\Application Data\MyApp\MyApp.ini }
-function AppIniFile: string;                                                                                  { Old name: GetAppIniFile }
-begin
- Assert(AppName > '', 'AppName is empty!');
- Assert(TPath.HasValidFileNameChars(AppName, FALSE), 'Invalid chars in AppName: '+ AppName);
-
- Result:= AppDataFolder+ AppName+ '.ini';
-end;
 
 
 

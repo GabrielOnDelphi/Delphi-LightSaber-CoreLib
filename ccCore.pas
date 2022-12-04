@@ -2,65 +2,63 @@ UNIT ccCore;
 
 {=============================================================================================================
    CubicDesign
-   2022-04-03
+   2022.10.04
    See Copyright.txt
 
    Over 200 functions for:
-      String manipulation (string conversions, sub-string detection, word manipulation, cut, copy, split, wrap, etc)
-      Programmer's helper
-      Form manipulation
-      Advanced/easy message boxes
-      DateTime utilities
-
-
-   By adding this unit to your app, the EXE fileszie will increase with adds 320KB (2MB for a console app)
-   See this for more info: c:\Google Drive\Delphi\Delphi documentation.rtf
-
-   See also: c:\MyProjects\Packages\AppControls v3.8.1\Sources\acUtils.pas
-   Tester:
-      c:\Myprojects\Project Testers\Global Cubic VCL tester\CubicVclCtrlsTester.dpr
+     - String manipulation (string conversions, sub-string detection, word manipulation, cut, copy, split, wrap, etc)
+     - Programmer's helper
+     - Form manipulation
+     - Advanced message boxes
+     - Easy message boxes
+     - DateTime utilities
+     - etc
 
 =============================================================================================================}
 
 INTERFACE
 
 USES
-   Winapi.Windows, Winapi.Messages, Winapi.MMSystem,
-   System.AnsiStrings, System.Character, System.SysUtils, System.Classes, System.Types, System.TimeSpan, System.DateUtils, Generics.Collections,
+   Winapi.Windows, Winapi.Messages, Winapi.MMSystem, System.AnsiStrings, System.Character, System.SysUtils,
+   System.Classes, System.Types, System.TimeSpan, System.DateUtils, Generics.Collections,
    Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Graphics;
 
+{ Enters }
 CONST
-   { Enters - For crossplatform use: system.sLineBreak }
-   CR               = #13;                        { $0D. Used on Mac OS, Apple II family, ZX Spectrum }
-   LF               = #10;                        { $0A  Used on Unix (Linux, OS X, FreeBSD, AIX, Xenix, etc.), BeOS, Amiga, RISC OS }
-   CRLF             = #13#10;                     { Used on Windows, OS/2, Symbian OS, Palm OS }
+   {Note: For crossplatform use System.sLineBreak }
+   CR               = #13;         { $0D. Used on Mac OS, Apple II family, ZX Spectrum }
+   LF               = #10;         { $0A  Used on Unix (Linux, OS X, FreeBSD, AIX, Xenix, etc.), BeOS, Amiga, RISC OS }
+   CRLF             = #13#10;      { Used on Windows, OS/2, Symbian OS, Palm OS }
    LBRK             = CRLF+CRLF;
-   {}
-   ESC              = #27;
+
+{ Special characters }
+CONST
    TAB              = #9;
-   Space            = #32;                        { $20 }
+   ESC              = #27;
+   Space            = #32;         { $20 }
    Quote            = #39;
-   {}
    CopyrightSymbol  = '©';
    GradCelsius      = '°';
-   Euro             = #8364;                      { Euro Sign: Alt+0128.  Unicode Number: 8364 }
-   {}
+   Euro             = #8364;       { Euro Sign: Alt+0128.  Unicode Number: 8364 }
+
+{ Indexes }
+CONST
    IndexedIn1       = 1;
    IndexedIn0       = 0;
    IndexDiff        = 1;
    HeaderOverhead   = 1;
    HeaderRow0       = 0;
 
-   { Here are some extra VK constants that are missing from Delphi's Win dows API interface (Windows.pas unit)
-     More virtual keys here: http://delphi.about. com/od/objectpascalide/l/blvkc.htm }
+{ Extra VK constants that are missing from Delphi's Win dows API interface (Windows.pas unit)
+  More virtual keys here: http://delphi.about.com/od/objectpascalide/l/blvkc.htm }
+CONST
    VK_NULL          = 0;
-   //VK_ENTER         = VK_RETURN;                  { #13 }
-   VK_PRIOR         = $21;                        { PAGE UP }
-   VK_NEXT          = $22;                        { PAGE DOWN }
-   VK_pgUp          = $21;                        { PAGE UP }
-   VK_pgDwn         = $22;                        { PAGE DOWN }
-   VK_COPYRIGHT     = 169;                        { Type ALT 0169 to get © }
-   VK_REGISTERED    = 174;                        { Type ALT 0174 to get ® }
+   VK_PRIOR         = $21;       { PAGE UP }
+   VK_NEXT          = $22;       { PAGE DOWN }
+   VK_pgUp          = $21;       { PAGE UP }
+   VK_pgDwn         = $22;       { PAGE DOWN }
+   VK_COPYRIGHT     = 169;       { Type ALT 0169 to get © }
+   VK_REGISTERED    = 174;       { Type ALT 0174 to get ® }
    VK_SEMICOLON     = 186;
    VK_EQUAL         = 187;
    VK_COMMA         = 188;
@@ -72,17 +70,19 @@ CONST
    VK_BBACKSLASH    = 220;
    VK_RIGHTBRACKET  = 221;
    VK_QUOTE         = 222;
+   //VK_ENTER       = VK_RETURN; { #13 }
 
    Numbers        = ['0'..'9'];
-   LettersLowCase = ['a'..'z'];                   // LettersSmall
-   LettersUpCase  = ['A'..'Z'];                   // LettersCapital
+   LettersLowCase = ['a'..'z'];    // LettersSmall
+   LettersUpCase  = ['A'..'Z'];    // LettersCapital
    LettersSigns   = [' ', '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '+', '=', '[', ']', '{', '}', ';', ':', '''', '"', '<', '>', ',', '.', '/', '?', '\', '|'];
    FullAlfabet    = ['a'..'z', 'A'..'Z'];
    FullAlfabCifre = ['a'..'z', 'A'..'Z', '0'..'9'];
-   Vowels         = ['a', 'e', 'i', 'o', 'u', 'y', 'A', 'E', 'I', 'O', 'U', 'Y'];
-   LettersSpecial = [#10, #13, #9];               { CR, LF, TAB }
+   Vowels         = ['a', 'e', 'i','o', 'u', 'y', 'A', 'E', 'I', 'O', 'U', 'Y'];
+   LettersSpecial = [#10, #13, #9]; { CR, LF, TAB }
 
-   { Mine }
+{ Mine }
+CONST
    LazyWrite    = TRUE;
    InstantWrite = FALSE;
    ctCanCreate  = TRUE;
@@ -90,49 +90,34 @@ CONST
    SHOW         = TRUE;
    HIDE         = FALSE;
    MinINT       = Low(Integer);               { -2147483648 }
-
-   { Time }
-   NullDate     = -700000;                    { https://stackoverflow.com/questions/14985037/delphi-how-to-determine-and-empty-tdatetime-value }
-   Second       = 1000;                       { Miliseconds per sec. Already exists: MSecsPerSec }
-   Minute       = 60;                         { Miliseconds per min. Already exists System.SysUtils.SecsPerMin }
-   Hour         = 3600;                       { Miliseconds per hour }
-   Day          = 86400;
-   MSecsPerMin  = 60000;
-   MinutesPerDay= 24*60;
-
-   KB           = 1024;
-   MB           = 1048576;
-   GB: Int64    = 1073741824;
-   TB: Int64    = 1099511627776;
-
    OFF          = FALSE;
    ON_          = TRUE;
 
-   { Range limits on int type vars }          { int64 can hold up to 9223372036854775807 }
-   MAXSMALLINT   = high(smallint);
-   MINSMALLINT   = low(smallint);
-   MINWORD       = low(word);
-   MAXSHORTINT   = high(shortint);
-   MINSHORTINT   = low(shortint);
-   MINBYTE       = low(byte);
-   MAXLONGWORD   = high(longword);
-   MINLONGWORD   = low(longword);
-   MAXSTRING     = MaxInt;
+{ Units }
+CONST
+   KB        = 1024;
+   MB        = 1048576;
+   GB        = 1073741824;
+   TB: Int64 = 1099511627776;
 
-   { for FindFirst } {del
-   faNORMAL             = $0080;
-   faTEMPORARY          = $0100;
-   faSPARSE_FILE        = $0200;
-   faREPARSE_POINT      = $0400;
-   faCompressed         = $0800;
-   faOFFLINE            = $1000;
-   faNotContentIndexed  = $2000;     }
+{ Range limits on int type vars }          { int64 can hold up to 9223372036854775807 }
+CONST
+   MAXSMALLINT = high(smallint);
+   MINSMALLINT = low(smallint);
+   MINWORD     = low(word);
+   MAXSHORTINT = high(shortint);
+   MINSHORTINT = low(shortint);
+   MINBYTE     = low(byte);
+   MAXLONGWORD = high(longword);
+   MINLONGWORD = low(longword);
+   MAXSTRING   = MaxInt;
 
    RegStartUpKey= 'Software\Microsoft\Windows\CurrentVersion\Run';
    UM_ENSURERESTORED = WM_USER+ 65;                                        { For 'Run Single Instance' }
    MSG_LateInitialize= WM_APP + 4711;
 
-   { COLORS }     { BGR format }
+{ COLORS (in BGR format) }
+CONST
    clBlueBkg     = TColor($15100F);           { To be used as backgound when I display images }
    clBlueAlmost  = Tcolor($F03030);
    clBlueBleo    = Tcolor($FEF800);
@@ -202,6 +187,10 @@ CONST
    clSilverLight = TColor($F3F2F2);           { Very light silver }
    clGrayMedium  = TColor($A4A0A0);
 
+{ Bitwise constants for TControl.Tag }
+CONST
+   DontTranslate= 128; { 128 = binary 1000 0000 } {Note: in Delphi11 we can write it directly as a binary literal: %10000000 }
+
 
 TYPE
   TStringArray       = array of string;
@@ -210,10 +199,8 @@ TYPE
   TConvertNotify     = procedure(Kind: TConvertNotifyKind; Value: LongInt);
   TNotifyMsgEvent    = procedure(Self: TObject; Msg: string) of object;    { For general use }
 
-  //Caracter           = string[1];  |DEL                                  { inlocuitor pt Char, care nu suporta sa fie Empty (empty string) }
-
 TYPE
-  TCustomControlEx= class(TCustomControl)                                  { Control that exposes the Canvas property. It can be used to access TPanel's canvas property for example }
+  TCustomControlEx= class(TCustomControl)    { Interposer: Control that exposes the Canvas property. It can be used to access TPanel's canvas property for example }
    public
       property Canvas;
    end;
@@ -286,7 +273,7 @@ TYPE
  // COMPARE
  function  StringFuzzyCompare  (s1, s2: string): Integer;                                                         { The function checks if any identical characters is in the near of the actual compare position }
  function  FileNameNaturalSort (s1, s2: String): Integer;                                                         { Natural compare two filenames }
- function  StrCmpLogicalW      (psz1, psz2: PWideChar): Integer; stdcall; external 'shlwapi.dll';                 { Natural compare two filenames. Digits in the strings are considered as numerical content rather than text. This test is not case-sensitive. Use it like this: StrCmpLogicalW(PChar(s1), PChar(s2));  see: http://stackoverflow.com/questions/1024515/delphi-is-it-necessary-to-convert-string-to-widestring }
+ function  StrCmpLogicalW      (psz1, psz2: PWideChar): Integer; stdcall; external 'shlwapi.dll';                 { Natural compare two filenames. Digits in the strings are considered as numerical content rather than text. This test is not case-sensitive. Use it like this: StrCmpLogicalW(PChar(s1), PChar(s2));  see: http://stackoverflow.com/questions/1024515/delphi-is-it-necessary-to-convert-string-to-widestring.  }
 
  // WORDS
  function  IsWordSeparator     (CONST aChar: Char): Boolean;                                                      { Returns true if the specified char is a word separator .;?,! }
@@ -296,10 +283,10 @@ TYPE
  function  WordCount           (CONST s: string): Integer;
 
  // COPY from/to a marker
- function  ExtractTextBetween  (CONST s, TagStart, TagEnd: string): string;                                        { Extract the text between the tags. For example '<H>Title</H>' will return 'Title' is iFrom= '<H>' and iTo= '</H>' }
+ function  ExtractTextBetween  (CONST s, TagStart, TagEnd: string): string;                                       { Extract the text between the tags. For example '<H>Title</H>' will return 'Title' is iFrom= '<H>' and iTo= '</H>' }
 
  function  CopyTo              (CONST s: String; iFrom: Integer; sTo: string; IncludeMarker: Boolean= TRUE; CopyAllMarkerNotFound: Boolean= FALSE; MarkerOffset: Integer= 1): string; overload;
- function  CopyFromTo          (CONST s: string; sFrom, sTo: string;          IncludeMarkers: Boolean= FALSE; Offset: Integer= 1): string;     overload;
+ function  CopyFromTo          (CONST s: string; sFrom, sTo: string;          IncludeMarkers: Boolean= FALSE; Offset: Integer= 1): string;       overload;
 
  function  CopyFrom            (CONST s, sFrom: string;     Count: Integer; IncludeMarker: Boolean= TRUE; SearchOffset: Integer= 1): string;     overload;  { Find sFrom in s. Returns the string from the postion where the text was found, to the end. }
  function  CopyFrom            (CONST s, sFrom: AnsiString; Count: Integer; IncludeMarker: Boolean= TRUE; SearchOffset: Integer= 1): AnsiString; overload;
@@ -331,13 +318,16 @@ TYPE
 
  function  GenerateRandomWord  (CONST Len: Integer=16; StartWithVowel: Boolean= FALSE): string;
  function  GenerateRandString  (minLen, maxLen: Integer): string;                                                 { This will return all printable craracters (from 65 to 125) }
- function  GenerateRandStringLet (CONST Len: Integer): string;                                                     { This will return ONLY letters and numbers } { YOU MUST call randomize before calling this function! }
- procedure GenerateRandomTextFile(CONST aFilename: string; NoOfLines: Integer);                                         { Creates a file that contains random strings. NoOfLines=10000000 creates a files of about 140MB }
+ function  GenerateRandStringLet (CONST Len: Integer): string;                                                    { This will return ONLY letters and numbers } { YOU MUST call randomize before calling this function! }
+ procedure GenerateRandomTextFile(CONST aFilename: string; NoOfLines: Integer);                                   { Creates a file that contains random strings. NoOfLines=10000000 creates a files of about 140MB }
 
  // OTHERS
  function  InsertCharEvery     (CONST c: char; CONST Target: string; Every: Integer): string;                   { Insert a char into TargetStr every x characters }
  function  DoubleQuoteStr      (CONST s: string): string;
  function  Reverse             (CONST s: String): string; deprecated 'ccCore.Reverse is deprecated. Use System.StrUtils.ReverseString';
+ function  GetRandomPersonName: string;   { Returns a random name in a 100 unique name list }
+ function  GetRandomStreetName: string;
+
 
  // Shorten text and put ellipsis in it
  // ShortenString & GetEllipsisText moved to cmEllipsisText.pas
@@ -439,11 +429,12 @@ TYPE
  procedure DisposeAndNil(VAR P: Pointer);
  procedure FillZeros(VAR IntArray: TIntegerDynArray);
 
- procedure DelayEx       (CONST ms : cardinal);
+ procedure DelayEx(CONST ms : cardinal);
  procedure CursorBusy;
  procedure CursorNotBusy;
 
  function  GetResourceAsString(CONST ResName: string): AnsiString;    { Extract a resource from self (exe) }
+ procedure RefreshNow(Ctrl: TControl);
 
 
 
@@ -483,17 +474,16 @@ TYPE
 
 
 {=============================================================================================================
-   VCL Controls
-   VCL Menus & Actions
+   VCL Controls, Menus & Actions
+   Moved to: cmVclUtils.pas
 =============================================================================================================}
-  { See: cmVclUtils.pas }
 
 
 
 {=============================================================================================================
    TIME
 =============================================================================================================}
-type
+TYPE
     { Returns the next day in the week }
     TWeekDays = (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday);   // Days enumeration
     TWeekDaysHelper = record helper for TWeekDays
@@ -501,9 +491,21 @@ type
        function ToString: string;
     end;
 
+CONST
+   NullDate     = -700000;                    { https://stackoverflow.com/questions/14985037/delphi-how-to-determine-and-empty-tdatetime-value }
+   Second       = 1000;                       { Miliseconds per sec. Already exists: MSecsPerSec }
+   Minute       = 60;                         { Miliseconds per min. Already exists System.SysUtils.SecsPerMin }
+   Hour         = 3600;                       { Miliseconds per hour }
+   Day          = 86400;
+   MSecsPerMin  = 60000;
+   MinutesPerDay= 24*60;
+
+
  // Current time
- function TodayIs: string;                   { Returns today as date based on Locale. Example: Montag }
- function CurrentDateToString: string;       { Returns today as date & time. Example: 31.12.2021 - 16:50 }
+ function TodayIs: string;                                         { Returns today as date based on Locale. Example: Montag }
+ function CurrentDateToString(ShowSeconds: Boolean): string;       { Returns today as date & time. Example: 31.12.2021 - 16:50 }
+ function CurrentTimeToString(ShowSeconds: Boolean): string;       { Returns time in short format (no seconds). Example: 16:50 }
+ function TimeToString(CONST T: TDateTime; ShowSeconds: Boolean): string;
 
  function CurrentYear: Word;
  function CurrentMonth: Word;
@@ -599,6 +601,12 @@ begin
 end;
 
 
+procedure RefreshNow(Ctrl: TControl);
+begin
+  Ctrl.Refresh;
+end;
+
+
 procedure DelayEx(CONST ms : Cardinal);                                                            { Non-blocking sleep/delay.  Applica tion.ProcessMessages could create a lot of problems!!! }
 VAR Count: Cardinal;
 begin
@@ -651,7 +659,7 @@ end;
 
 { Brings the form back into the screen, IF it was outside the screen.
   Usage:  CorrectFormScreenPosition(Self).
-  It is automaticalled by cvIniFileVclEx.LoadForm.
+  It is automaticalled by cvIniFile.LoadForm.
 
   Screen.WorkArea -> Specifies the work area on the Primary monitor.
   DesktopWidth    -> Determines the width of the desktop. The desktop is defined as the entire virtual desktop, which includes all monitors in the system. On a single-monitor system, DesktopWidth corresponds to Width. }
@@ -870,6 +878,7 @@ begin
 end;}
 
 
+{ Converts seconds to time, but showing the shortest string possible. For example: it will convert 59 to '59s' and 61 to '1m 01s' }
 function SecondsToTimeAuto(CONST Seconds: Cardinal): string; // Old name: SecondsToTime_FormatAuto
 VAR D, H, M, S: Cardinal;
 begin
@@ -1089,7 +1098,7 @@ end;
 
 
 { Returns today as date AND time. Example: 31.12.2021 - 16:50 }
-function CurrentDateToString: string;
+function CurrentDateToString(ShowSeconds: Boolean): string;
 VAR
   Present: TDateTime;
   Year, Month, Day, Hour, Min, Sec, MSec: Word;
@@ -1097,8 +1106,39 @@ begin
   Present:= Now;
   DecodeDate(Present, Year, Month, Day);
   DecodeTime(Present, Hour, Min, Sec, MSec);
-  Result:= IntToStr(Day)+'.'+IntToStr(Month)+'.'+IntToStr(Year)+' - '+IntToStr(Hour)+':'+IntToStr(Min)+':'+IntToStr(Sec);
+  Result:= IntToStr(Day)+'.'+IntToStr(Month)+'.'+IntToStr(Year)+' - '+ TimeToString(Present, FALSE);
 end;
+
+
+{ Returns time in short format (no seconds). Example: 16:50 }
+function CurrentTimeToString(ShowSeconds: Boolean): string;
+begin
+  Result:= TimeToString(Now, ShowSeconds);
+end;
+
+
+{ Returns time in short format. Example: 16:50 }
+function TimeToString(CONST T: TDateTime; ShowSeconds: Boolean): string;
+VAR
+  Hour, Min, Sec, MSec: Word;
+begin
+  DecodeTime(T, Hour, Min, Sec, MSec);
+
+  if Hour < 10
+  then Result:= '0'+ IntToStr(Hour)
+  else Result:= IntToStr(Hour);
+
+  if Min < 10
+  then Result:= Result+ ':'+ '0'+IntToStr(Min)
+  else Result:= Result+ ':'+ IntToStr(Min);
+
+  if ShowSeconds then
+    if Sec < 10
+    then Result:= Result+ ':'+ '0'+IntToStr(Sec)
+    else Result:= Result+ ':'+ IntToStr(Sec);
+end;
+
+
 
 
 function DateIsToday(Year, Month, Day: word): Boolean;   { Returns true if the specified date is today }
@@ -1243,7 +1283,7 @@ function MesajGeneric(CONST MessageText: string; Title: string= ''; Icon: Intege
  begin
   if MessageText= '' then EXIT(0);
   if Title= ''
-  then Title:= AppName;
+  then Title:= AppData.AppName;
   Result:= Application.MessageBox(PCHAR(CRLFToEnter(MessageText)), PChar(Title), Icon); //icon =  MB_ICONINFORMATION or MB_OK
  end;
 {$ELSE}
@@ -1269,14 +1309,14 @@ end;
 
 procedure MesajWarning(CONST MessageText: string);
 begin
- MesajGeneric(MessageText, AppName+' - Warning', MB_ICONWARNING or MB_OK);
+ MesajGeneric(MessageText, AppData.AppName+' - Warning', MB_ICONWARNING or MB_OK);
 end;
 
 
 
 procedure MesajError(CONST MessageText: string);                                                   { afiseaza un mesaj cu icon de eroare pe ecran. If the MessageText is empty then dispaly nothing }
 begin
- MesajGeneric(MessageText, AppName+' - Error', MB_ICONERROR or MB_OK);
+ MesajGeneric(MessageText, AppData.AppName+' - Error', MB_ICONERROR or MB_OK);
 end;
 
 
@@ -1325,9 +1365,9 @@ begin
   begin
    Dlg:= TTaskDialog.Create(Application);
    TRY
-     if AppName= ''
-     then Dlg.Caption := AppName
-     else Dlg.Caption := AppName;
+     if AppData.AppName= ''
+     then Dlg.Caption := AppData.AppName
+     else Dlg.Caption := AppData.AppName;
      Dlg.Title := Title;
      Dlg.Text := CRLFToEnter(MessageText);
      Dlg.CommonButtons := [tcbOk];
@@ -1370,16 +1410,17 @@ end;
 ============================================================================================================}
 
 { Also see: ccBinary.StringIsHexNumber
-  Doesn't work with Real numbers! It works with signs like: '+1' and '-1' }
+  Doesn't work with Real numbers!
+  It works with signs like: '+1' and '-1' }
 function StringIsInteger(CONST S: string): Boolean;
 begin
   Result:= True;
   TRY
     StrToInt(S);
-  except
+  EXCEPT
     //todo 1: trap only specific exceptions (EConvertError)
     Result:= FALSE;
-  end;
+  END;
 end;
 
 
@@ -2237,7 +2278,7 @@ end;
 =============================================================================================================
 
  Enter format on:
-    Win: 0D0A = CRLF = $D$A
+    Win: 0D0A = CR LF = $D $A
     Mac: 0D
     Nix: 0A
 ============================================================================================================}
@@ -2271,7 +2312,7 @@ begin
  then Result:= s[1];
 
  for i:= 2 to Length(s) DO
-  if  (s[i]= LF) AND (s[i-1]<> CR)
+  if  (s[i]= LF{A}) AND (s[i-1]<> CR{D})
   then Result:= Result+ ReplaceWith
   else Result:= Result+ s[i];
 end;
@@ -2885,13 +2926,13 @@ end;
    STRING COMPARE
 ============================================================================================================}
 
-{ Natural compare two strings. See also: StrCmpLogicalW
-  Example.
-  You have files:
-     pic1, pic2, pic10
-  When sorted they end up like pic1 pic10 pic2. This function will sort them naturally.
+{ Natural compare two strings.
+  Example: We have 3 files: pic1, pic2, pic10
+     Delphi sort: pic1 pic10 pic2.
+     Natural compare sort: pic1 pic2 pic10
+  Source: http://www.delphi3000.com/articles/article_5295.asp?SK=                                                                                       // old name: StrNaturalCompare
 
-  Source: http://www.delphi3000.com/articles/article_5295.asp?SK=  }                                                                                     // old name: StrNaturalCompare
+  Also see: StrCmpLogicalW }
 function FileNameNaturalSort(s1, s2: String): Integer;
 
   function ExtractNr(n: Integer; VAR txt: String): Int64;
@@ -2927,7 +2968,7 @@ begin
   end;
 
   if Result = 0 then
-    if (Length(s1) = 1) and (Length(s2) = 1)
+    if (Length(s1) = 1) AND (Length(s2) = 1)
     then Result:= Sign(Integer(s1[1]) - Integer(s2[1]))
     else Result:= Sign(Length(s1) - Length(s2));
 end;
@@ -3701,6 +3742,25 @@ end;
 
 
 
+{ Returns a random name in a 100 unique names list }
+function GetRandomPersonName: string;
+CONST
+   Names: array[0..199] of string = ('Aaron','Abigail','Adam','Alan','Albert','Alexander','Alexis','Alice','Amanda','Amber','Amy','Andrea','Andrew','Angela','Ann','Anna','Anthony','Arthur','Ashley','Austin','Barbara','Benjamin','Betty','Beverly','Billy','Bobby','Brandon','Brenda','Brian','Brittany','Bruce','Bryan','Carl','Carol','Carolyn','Catherine','Charles','Charlotte','Cheryl','Christian','Christina','Christine','Christopher','Cynthia','Daniel','Danielle','David','Deborah','Debra','Denise','Dennis','Diana','Diane','Donald','Donna','Doris','Dorothy','Douglas','Dylan','Edward','Elijah','Elizabeth','Emily','Emma','Eric','Ethan','Eugene','Evelyn','Frances','Frank','Gabriel','Gary','George','Gerald','Gloria','Grace','Gregory','Hannah','Harold','Heather','Helen','Henry','Isabella','Jack','Jacob','Jacqueline','James','Janet','Janice','Jason','Jean','Jeffrey','Jennifer','Jeremy','Jerry','Jesse','Jessica','Joan','Joe','John','Jonathan','Jordan','Jose','Joseph','Joshua','Joyce','Juan','Judith','Judy','Julia','Julie','Justin','Karen','Katherine','Kathleen','Kathryn','Kayla','Keith','Kelly','Kenneth','Kevin','Kimberly','Kyle','Larry','Laura','Lauren','Lawrence','Linda','Lisa','Logan','Lori','Louis','Madison','Margaret','Maria','Marie','Marilyn','Mark','Martha','Mary','Mason','Matthew','Megan','Melissa','Michael','Michelle','Nancy','Natalie','Nathan','Nicholas','Nicole','Noah','Olivia','Pamela','Patricia','Patrick','Paul','Peter','Philip','Rachel','Ralph','Randy','Raymond','Rebecca','Richard','Robert','Roger','Ronald','Roy','Russell','Ruth','Ryan','Samantha','Samuel','Sandra','Sara','Sarah','Scott','Sean','Sharon','Shirley','Sophia','Stephanie','Stephen','Steven','Susan','Teresa','Terry','Theresa','Thomas','Timothy','Tyler','Victoria','Vincent','Virginia','Walter','Wayne','William','Willie','Zachary');
+begin
+  Result:= Names[Random(High(Names))];
+end;
+
+function GetRandomStreetName: string;
+CONST
+   Names: array[0..40] of string = ('Abbey Road', 'Abbotswell Street', 'Abingdon Street', 'Acacia Road', 'Acorn Street', 'Acton Street', 'Adam Street', 'Adelaide Place', 'Admiral Street', 'Agnes Street', 'Albany Street', 'Albemarle Street', 'Albert Cottages', 'Albert Mews', 'Albert Road', 'Albion Mews', 'Alexander Street', 'Alfred Mews', 'Allen Street', 'Allington Street', 'Alma Road', 'Amberley Road', 'Anchor Alley', 'Angel Count', 'Ann Street', 'Anstey Road', 'Beech Street', 'Belgrave Road', 'Belgrave Street', 'Belgrave Terrace', 'Bell Court', 'Bell Yard', 'Belmont Road', 'Bendall Street', 'Bendmore Road', 'Bennett Street', 'Bentinck Street', 'Beresford Street', 'Berkley Street', 'Berwick Street', 'Birdcage Walk');
+begin
+  Result:= Names[Random(High(Names))];
+end;
+
+
+
+
+
 {$IFNDEF UNICODE}
 function CharInSet(C: AnsiChar; CONST CharSet: TSysCharSet): Boolean;
 begin
@@ -3975,11 +4035,4 @@ begin
 end;
 
 
-
-
 end.
-
-
-
-
-
