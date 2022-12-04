@@ -1,30 +1,29 @@
 UNIT ccAppData;
 
-{==================================================================================================
+{=============================================================================================================
    CubicDesign
-   2022-04-03
+   2022.12.04
    See Copyright.txt
-  ==================================================================================================
-   Application-wide functions:
-   - Get application's appdata folder (the folder where you save temporary, app-related and ini files)
-   - Get application's command line parameters
-   - Detect if the application is running for the firs this in a computer
-   - Application self-restart
-   - Application self-delete
-   - etc
+  ============================================================================================================
+   The AppData var will store the object, global for the whole application.
+   Via this object you can:
+      - Get application's appdata folder (the folder where you save temporary, app-related and ini files)
+      - Get application's command line parameters
+      - Detect if the application is running for the firs this in a computer
+      - Application self-restart
+      - Application self-delete
+      - etc
+   It is CRITICAL to create the AppData object as soon as the application starts. Prefferably in the DPR file before creating the main form!
+     Example: AppData:= TAppData.Create('MyCollApp');
 
-   The AppName global variable is the central part for the App/Ini/MesageBox functionality.
-   It is CRITICAL to create this object as soon as the application starts. Prefferably in the DPR file before creating the main form!
-     Example: AppData:= TAppData.Create('Fix enters');
-==================================================================================================}
+   The AppName global variable is the central part of this class. It is used by App/Ini file/MesageBox/etc. You set in in the constructor.
+
+=============================================================================================================}
 
 INTERFACE
 
 USES
-  Winapi.Windows, Winapi.ShlObj, Winapi.ShellAPI,
-  System.Win.Registry, System.IOUtils, System.SysUtils, System.Classes,
-  Vcl.Forms;
-
+  Winapi.Windows, Winapi.ShlObj, Winapi.ShellAPI, System.Win.Registry, System.IOUtils, System.SysUtils, System.Classes, Vcl.Forms;
 
 TYPE
   TAppData= class(TObject)
@@ -34,7 +33,7 @@ TYPE
     FRunningFirstTime: Boolean;
     function getLastUsedFolder: string;
    public
-    Initializing: Boolean;        { Used in cvIniFile.pas. Set it to false once your app finished initializing. }
+    Initializing: Boolean;                      { Set it to false once your app finished initializing (usually after you finished creating all forms). Used in cvIniFile.pas. }
     constructor Create(aAppName: string);
 
    {--------------------------------------------------------------------------------------------------
@@ -48,7 +47,6 @@ TYPE
     function AppDataFolderAllUsers: string;
 
     function AppShortName: string;
-
     property AppName: string read FAppName;
     property LastUsedFolder: string read getLastUsedFolder write FLastFolder;
 
@@ -126,7 +124,7 @@ begin
   FRunningFirstTime:= NOT FileExists(IniFile);
   ForceDirectories(AppDataFolder);
 
-  //ToDo: !!!!!!!!!!!!!!!!!!!!!!!! CreateLogForm; But this will create dependencies on the Log!
+  //ToDo: !!! CreateLogForm; But this will create dependencies on the Log!
 end;
 
 
@@ -186,7 +184,7 @@ end;
 
 
 { Returns the path to current user's AppData folder on Windows, and to the current user's home directory on Mac OS X.
-  Example:  c:\Documents and Settings\UserName\Application Data\AppName\
+  Example: c:\Documents and Settings\UserName\Application Data\AppName\
   if ForceDir then it creates the folder (full path) where the INI file will be written.
 }
 function TAppData.AppDataFolder(ForceDir: Boolean = FALSE): string;
