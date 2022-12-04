@@ -14,8 +14,8 @@ UNIT ccAppData;
    - etc
 
    The AppName global variable is the central part for the App/Ini/MesageBox functionality.
-   It is CRITICAL to set the AppName global var as soon as the application starts.
-   It must contain only I/O-safe characters (so no question marks).
+   It is CRITICAL to create this object as soon as the application starts. Prefferably in the DPR file before creating the main form!
+     Example: AppData:= TAppData.Create('Fix enters');
 ==================================================================================================}
 
 INTERFACE
@@ -108,7 +108,7 @@ function  GetVersionFixedInfo(CONST FileName: string; VAR FixedInfo: TVSFixedFil
 
 
 VAR
-   AppData: TAppData;   //ToDo: make sure it is unique
+   AppData: TAppData;   //ToDo: make sure it is unique (make Singleton)
 
 
 IMPLEMENTATION
@@ -116,11 +116,12 @@ IMPLEMENTATION
 USES
   ccCore, ccIO, ccINIFile;
 
-
+{ It must contain only I/O-safe characters (so no question marks). }
 constructor TAppData.Create(aAppName: string);
 begin
   inherited Create;
   Initializing:= True;                            { Used in cvIniFile.pas. Set it to false once your app finished initializing. }
+  //ToDo: check for valid AppName
   FAppName:= aAppName;
   FRunningFirstTime:= NOT FileExists(IniFile);
   ForceDirectories(AppDataFolder);
