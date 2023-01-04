@@ -657,10 +657,10 @@ procedure SaveForm(Form: TForm; OnlyFormPos: Boolean= FALSE);
 VAR
    IniFile: TCubicIniFileVcl;
 begin
- if AppData.Initializing
+ if TAppData.Initializing
  AND (Form = Application.MainForm) then
   begin
-   if AppData.RunningHome
+   if TAppData.RunningHome
    then MesajError('Closing application while still initializing!');
    Exit;{ We don't save anything if the start up was improper! }
   end;

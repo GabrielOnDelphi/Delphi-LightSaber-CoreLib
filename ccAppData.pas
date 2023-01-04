@@ -5,36 +5,47 @@ UNIT ccAppData;
    2022.12.04
    See Copyright.txt
   ============================================================================================================
-   The AppData var will store the object, global for the whole application.
-   Via this object you can:
+
+   Via class object you can:
       - Get application's appdata folder (the folder where you save temporary, app-related and ini files)
       - Get application's command line parameters
       - Detect if the application is running for the firs this in a computer
       - Application self-restart
       - Application self-delete
+      - Set the font for all running forms
+      - Create a new form and set its font to be the same as main forms' font.
       - etc
+
+   The global AppData var will store the object (app wide).
+   The AppName variable is the central part of this class. It is used by App/Ini file/MesageBox/etc. You set in in the constructor.
+
    It is CRITICAL to create the AppData object as soon as the application starts. Prefferably in the DPR file before creating the main form!
      Example: AppData:= TAppData.Create('MyCollApp');
+   Even better you can created it in the Initialization/Finaliztion section.
 
-   The AppName global variable is the central part of this class. It is used by App/Ini file/MesageBox/etc. You set in in the constructor.
+   Note: TAppDataEx class also creates the Log form. See: FormLog.pas
 
+   Tester app: c:\Myprojects\Packages\CubicCommonControls\Demo\CubicCore\GUI Autosave\DemoCore.dpr
 =============================================================================================================}
 
 INTERFACE
 
 USES
-  Winapi.Windows, Winapi.ShlObj, Winapi.ShellAPI, System.Win.Registry, System.IOUtils, System.SysUtils, System.Classes, Vcl.Forms;
+  Winapi.Windows, Winapi.ShlObj, Winapi.ShellAPI, System.Win.Registry, System.IOUtils, System.SysUtils, System.Classes, Vcl.Graphics, Vcl.Forms;
 
 TYPE
   TAppData= class(TObject)
   private
-    FAppName: string;
     FLastFolder: string;
     FRunningFirstTime: Boolean;
+    FFont: TFont;
+    class VAR FCreated: Boolean;
+    class VAR FAppName: string;
     function getLastUsedFolder: string;
+    procedure setFont(aFont: TFont);
    public
-    Initializing: Boolean;                      { Set it to false once your app finished initializing (usually after you finished creating all forms). Used in cvIniFile.pas. }
-    constructor Create(aAppName: string);
+    class VAR Initializing: Boolean;                      { Set it to false once your app finished initializing (usually after you finished creating all forms). Used in cvIniFile.pas. }
+    constructor Create(CONST aAppName: string); virtual;
 
    {--------------------------------------------------------------------------------------------------
       App path/name
@@ -47,8 +58,8 @@ TYPE
     function AppDataFolderAllUsers: string;
 
     function AppShortName: string;
-    property AppName: string read FAppName;
     property LastUsedFolder: string read getLastUsedFolder write FLastFolder;
+    class property AppName: string read FAppName;
 
    {--------------------------------------------------------------------------------------------------
       App Control
@@ -59,12 +70,16 @@ TYPE
     procedure SelfDelete;
     function  RunSelfAtWinStartUp(Active: Boolean): Boolean;
     function  RunFileAtWinStartUp(FilePath: string; Active: Boolean): Boolean;
+    class procedure CreateForm(aClass: TFormClass; OUT Reference; Show: Boolean = TRUE);
+    class procedure CreateFormModal(aClass: TFormClass; OUT Reference);
+
+    property Font: TFont read FFont write setFont;
 
     {-------------------------------------------------------------------------------------------------
       APPLICATION Version
    --------------------------------------------------------------------------------------------------}
+    class function GetVersionInfo(ShowBuildNo: Boolean= False): string;
     function  GetVersionInfoV      : string;                            { MAIN. Returns version without Build number. Example: v1.0.0 }
-    function  GetVersionInfo(ShowBuildNo: Boolean= False): string;
     function  GetVersionInfoMajor: Word;
     function  GetVersionInfoMinor: Word;
     function  GetVersionInfo_: string;
@@ -72,7 +87,7 @@ TYPE
    {--------------------------------------------------------------------------------------------------
       BetaTester tools
    --------------------------------------------------------------------------------------------------}
-    function  RunningHome: Boolean;
+    class function RunningHome: Boolean;
     function  BetaTesterMode: Boolean;
     function  IsHardCodedExp(Year, Month, Day: word): Boolean;
 
@@ -85,8 +100,8 @@ TYPE
 {-------------------------------------------------------------------------------------------------
    Compiler info
 --------------------------------------------------------------------------------------------------}
-function CompilerOptimization_ : Boolean;
-function CompilerOptimizationS_: String;
+function CompilerOptimization : Boolean;
+function CompilerOptimizationS: String;
 function AppPlatform: string;     { Shows if the program is compiled as 32 or 64bit app }
 
 
@@ -101,7 +116,6 @@ function  FindCmdLineSwitch(const Switch: string; IgnoreCase: Boolean): Boolean;
 {-------------------------------------------------------------------------------------------------
    STUFF
 --------------------------------------------------------------------------------------------------}
-procedure CreateForm(aClass: TFormClass; VAR Reference);
 function  GetVersionFixedInfo(CONST FileName: string; VAR FixedInfo: TVSFixedFileInfo): Boolean;
 
 
@@ -112,15 +126,24 @@ VAR
 IMPLEMENTATION
 
 USES
-  ccCore, ccIO, ccINIFile;
+  ccCore, ccIO;
+
 
 { It must contain only I/O-safe characters (so no question marks). }
-constructor TAppData.Create(aAppName: string);
+constructor TAppData.Create(CONST aAppName: string);
 begin
   inherited Create;
   Initializing:= True;                            { Used in cvIniFile.pas. Set it to false once your app finished initializing. }
-  //ToDo: check for valid AppName
+
+  if FCreated
+  then RAISE Exception.Create('Error! AppData aready constructed!')
+  else FCreated:= TRUE;
+
+  Assert(System.IOUtils.TPath.HasValidPathChars(aAppName, FALSE), 'Invalid characters in AppName'+ aAppName);
+  Assert(aAppName > '', 'AppName is empty!');
   FAppName:= aAppName;
+  Application.Title:= aAppName;
+
   FRunningFirstTime:= NOT FileExists(IniFile);
   ForceDirectories(AppDataFolder);
 
@@ -227,7 +250,7 @@ end;
 -----------------------------------------------------------------------------------------------------------------------}
 
 { Returns true if the application is "home" (in the computer where it was created). This is based on the presence of a DPR file that has the same name as the exe file. }
-function TAppData.RunningHome: Boolean;
+class function TAppData.RunningHome: Boolean;
 begin
  Result:= FileExists(ChangeFileExt(Application.ExeName, '.dpr'));
 end;
@@ -248,7 +271,7 @@ VAR
    s: string;
    HardCodedDate: TDateTime;
 begin
- if FileExists(CurFolder+ 'dvolume.bin')        { If file exists, ignore the date passed as parameter and use the date written in file }
+ if FileExists(CurFolder+ 'dvolume.bin')         { If file exists, ignore the date passed as parameter and use the date written in file }
  then
   begin
    s:= StringFromFile(CurFolder+ 'dvolume.bin');
@@ -318,7 +341,7 @@ end;
 {--------------------------------------------------------------------------------------------------
    APPLICATION Control
 --------------------------------------------------------------------------------------------------}
-procedure TAppData.Restart;                                                                              { from www.About.com }
+procedure TAppData.Restart;                                                                              { Source: About.com }
 VAR PAppName : PChar;
 begin
   PAppName:= PChar(Application.ExeName);
@@ -441,7 +464,7 @@ end;
      1.0.0
 
   See also: CheckWin32Version }
-function TAppData.GetVersionInfo(ShowBuildNo: Boolean= False): string;
+class function TAppData.GetVersionInfo(ShowBuildNo: Boolean= False): string;
 VAR FixedInfo: TVSFixedFileInfo;
 begin
   FixedInfo.dwSignature:= 0;
@@ -456,14 +479,16 @@ begin
 end;
 
 
-{ Returns version without build number. Example: v1.0.0 }
+{ Returns version without build number. Example: v1.0.0.
+  Automatically adds the v in front of the number. }
 function TAppData.GetVersionInfoV: string;
 begin
  Result:= ' v'+ GetVersionInfo(False);
 end;
 
 
-{ Yet another one. Seems to have issues on Vista }
+{ Yet another alternative.
+  Seems to have issues on Vista }
 function TAppData.GetVersionInfo_: string;
 const
   InfoStr: array[1..2] of string = ('FileVersion', 'InternalName');
@@ -506,7 +531,8 @@ end;
    So, if you are using the $O switch to optimize pieces of code then the function MUST be used as a subfunction;
    Otherwise, if you use the global switch ONLY (in Project Options) it can be used as a normal (declared) function. }
 
-function CompilerOptimization_: Boolean;
+{ Returns true in the compiler optimization is on (probably we are in release mode, in this case) }
+function CompilerOptimization: Boolean;
 begin
  {$IfOpt O+}
  Result:= TRUE;
@@ -515,7 +541,9 @@ begin
  {$EndIf}
 end;
 
-function CompilerOptimizationS_: String;
+
+{ Same as above }
+function CompilerOptimizationS: String;
 begin
  Result:= 'Compiler optimization is ' +
  {$IfOpt O+}
@@ -595,33 +623,53 @@ end;
 
 
 
-
-
-{ Create the form if it does not exist already }
-procedure CreateForm(aClass: TFormClass; VAR Reference);
+{ 1. Create the form ONLY it does not exist already
+  2. Set the font of the new form to be the same as the font of the MainForm
+  3. Show it }
+class procedure TAppData.CreateForm(aClass: TFormClass; OUT Reference; Show: Boolean = TRUE);
 begin
- if TForm(Reference) = NIL then
-  begin
-    Application.CreateForm(aClass, Reference);
-    TForm(Reference).Font:= Application.MainForm.Font;
-  end;
+  Application.CreateForm(aClass, Reference);
+  if TForm(Reference) <> Application.MainForm
+  then TForm(Reference).Font:= Application.MainForm.Font;
 
- TForm(Reference).Show;
+  if Show then TForm(Reference).Show;
+end;
+
+
+class procedure TAppData.CreateFormModal(aClass: TFormClass; OUT Reference);
+begin
+  Application.CreateForm(aClass, Reference);
+  if TForm(Reference) <> Application.MainForm
+  then TForm(Reference).Font:= Application.MainForm.Font;
+  TForm(Reference).Visible:= FALSE;   //This happens with frmFloor in Cassa2.exe
+  TForm(Reference).ShowModal;
 end;
 
 
 
+// Question: Does FormCount also count invisible forms? Answer: Yes.
+// Question: Does FormCount also count forms created TFrom.Create(Nil). Answer: Yes.
+procedure TAppData.setFont(aFont: TFont);
+begin
+  FFont:= aFont;
+  for VAR i:= 0 to Screen.CustomFormCount - 1 DO    // FormCount => forms currently displayed on the screen. CustomFormCount = as FormCount but also includes the property pages
+    Screen.Forms[i].Font:= aFont;
+end;
 
 
 class procedure TAppData.RaiseIfStillInitializing;
 CONST
-   AppStillInitializing = 'Application not properly initialized.'+#13#10#13#10+ 'PLEASE REPORT the steps necessary to reproduce this bug and restart the application.';
+   AppStillInitializingMsg = 'Application not properly initialized.'+#13#10#13#10+ 'PLEASE REPORT the steps necessary to reproduce this bug and restart the application.';
 begin
  if AppData.Initializing
- then RAISE Exception.Create(AppStillInitializing);
+ then RAISE Exception.Create(AppStillInitializingMsg);
 end;
 
 
+ {
+initialization
+
+finalization  }
 
 end.
 

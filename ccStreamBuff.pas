@@ -318,7 +318,7 @@ begin
 end;
 
 
-{ It automatically detects the length of the string }           { Old name: ReadStringU }
+{ It automatically detects the length of the string }                   { Old name: ReadStringU }
 function TCubicBuffStream.ReadStringA: AnsiString;
 VAR Len: Cardinal;
 begin

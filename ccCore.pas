@@ -19,9 +19,9 @@ UNIT ccCore;
 INTERFACE
 
 USES
-   Winapi.Windows, Winapi.Messages, Winapi.MMSystem, System.AnsiStrings, System.Character, System.SysUtils,
-   System.Classes, System.Types, System.TimeSpan, System.DateUtils, Generics.Collections,
-   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Graphics;
+   Winapi.Windows, Winapi.Messages, Winapi.MMSystem, System.AnsiStrings, System.Character, System.SysUtils, System.Math,
+   System.IOUtils, System.StrUtils, System.Classes, System.Types, System.TimeSpan, System.DateUtils, Generics.Collections,
+   Vcl.Themes, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Graphics;
 
 { Enters }
 CONST
@@ -77,7 +77,7 @@ CONST
    LettersUpCase  = ['A'..'Z'];    // LettersCapital
    LettersSigns   = [' ', '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '+', '=', '[', ']', '{', '}', ';', ':', '''', '"', '<', '>', ',', '.', '/', '?', '\', '|'];
    FullAlfabet    = ['a'..'z', 'A'..'Z'];
-   FullAlfabCifre = ['a'..'z', 'A'..'Z', '0'..'9'];
+   FullAlfabNmbr  = ['a'..'z', 'A'..'Z', '0'..'9'];
    Vowels         = ['a', 'e', 'i','o', 'u', 'y', 'A', 'E', 'I', 'O', 'U', 'Y'];
    LettersSpecial = [#10, #13, #9]; { CR, LF, TAB }
 
@@ -573,7 +573,7 @@ CONST
 IMPLEMENTATION
 
 USES
-  System.Math, System.IOUtils, Vcl.Themes, System.StrUtils, ccStreamBuff, ccAppData;
+  ccStreamBuff;
 
 
 
@@ -738,12 +738,22 @@ end;
 
 
 { Center Child in Parent window }
+{ToDo: We should take into consideration the controls that are aligned (alleft, alright) }
 procedure CenterChild(aChild, Parent: TControl);
-VAR iTop: Integer;
+VAR Left, Top: Integer;
 begin
- aChild.Left:= (Parent.ClientWidth - aChild.Width) div 2;  {todo: We should take into consideration the controls that are aligned (alleft, alright) }
- iTop:= Parent.ClientHeight- aChild.Height;
- aChild.Top:= iTop div 2;
+ Left:= (Parent.ClientWidth - aChild.Width) div 2;
+
+ if Left < 0                                { Happens when the child is bigger than the parent }
+ then Left:= Parent.Left - Left;
+ aChild.Left:= Left;
+
+
+ Top:= (Parent.ClientHeight- aChild.Height) div 2;
+
+ if Top < 0                                 { Happens when the child is bigger than the parent }
+ then Top:= Parent.Top - Top;
+ aChild.Top:= Top;
 end;
 
 
@@ -1282,8 +1292,7 @@ function MesajGeneric(CONST MessageText: string; Title: string= ''; Icon: Intege
 {$IFDEF msWindows}
  begin
   if MessageText= '' then EXIT(0);
-  if Title= ''
-  then Title:= AppData.AppName;
+  if Title= '' then Title:= Application.Title;
   Result:= Application.MessageBox(PCHAR(CRLFToEnter(MessageText)), PChar(Title), Icon); //icon =  MB_ICONINFORMATION or MB_OK
  end;
 {$ELSE}
@@ -1309,14 +1318,14 @@ end;
 
 procedure MesajWarning(CONST MessageText: string);
 begin
- MesajGeneric(MessageText, AppData.AppName+' - Warning', MB_ICONWARNING or MB_OK);
+ MesajGeneric(MessageText, Application.Title+' - Warning', MB_ICONWARNING or MB_OK);
 end;
 
 
 
 procedure MesajError(CONST MessageText: string);                                                   { afiseaza un mesaj cu icon de eroare pe ecran. If the MessageText is empty then dispaly nothing }
 begin
- MesajGeneric(MessageText, AppData.AppName+' - Error', MB_ICONERROR or MB_OK);
+ MesajGeneric(MessageText, Application.Title+' - Error', MB_ICONERROR or MB_OK);
 end;
 
 
@@ -1354,7 +1363,9 @@ end;
 ============================================================================================================}
 procedure MesajTaskDLG(CONST MessageText, Title: string);
 {$WARN SYMBOL_PLATFORM OFF}
-VAR Dlg: TTaskDialog;
+VAR
+   s: string;
+   Dlg: TTaskDialog;
 begin
  if MessageText= '' then EXIT;
 
@@ -1365,11 +1376,12 @@ begin
   begin
    Dlg:= TTaskDialog.Create(Application);
    TRY
-     if AppData.AppName= ''
-     then Dlg.Caption := AppData.AppName
-     else Dlg.Caption := AppData.AppName;
-     Dlg.Title := Title;
-     Dlg.Text := CRLFToEnter(MessageText);
+     if Title= ''
+     then s := Application.Title
+     else s := Title;
+     Dlg.Caption:= s;
+     Dlg.Title  := s;
+     Dlg.Text   := CRLFToEnter(MessageText);
      Dlg.CommonButtons := [tcbOk];
      Dlg.Execute;
    FINALLY
@@ -2162,7 +2174,7 @@ VAR i: Integer;
 begin
  Result:= '';
  for i:= 1 to Length(s) DO
-   if CharInSet(s[i], FullAlfabCifre)
+   if CharInSet(s[i], FullAlfabNmbr)
    then Result:= Result+ s[i];
 end;
 
