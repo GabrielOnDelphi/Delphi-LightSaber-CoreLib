@@ -1,4 +1,4 @@
-# Delphi-LightSaber  
+# Delphi-CoreLib  
 Contains useful functions.   
 Lightweight (only 10000 lines of code) alternative to Jedi library.   
 
@@ -133,3 +133,8 @@ This library is freeware (see included copyright notice).
 The library cannot be used in Russia!
 
 Enjoy and "Star" the library if it is useful to you.
+
+
+**Downloading the code**  
+This repository is only a placeholder and source of information.
+The code should be downloaded now from https://github.com/GodModeUser/Delphi-LightSaber
