@@ -222,14 +222,13 @@ CONST
  function GetSaveDialog    (FileName, Filter, DefaultExt: string; Caption: string= ''): TSaveDialog;
  function GetOpenDialog    (FileName, Filter, DefaultExt: string; Caption: string= ''): TOpenDialog;
 
-                                                                                                   { Ellipsis }
 
 {--------------------------------------------------------------------------------------------------
    LIST FOLDER CONTENT
 --------------------------------------------------------------------------------------------------}
  function  CountFilesInFolder  (CONST Path: string; CONST SearchSubFolders, CountHidden: Boolean): Cardinal;
  function  FindFirstFile       (CONST aFolder, Ext: string): string;                               { Find first file in the specified folder }
- function  ListDirectoriesOf   (CONST aFolder: string; CONST ReturnFullPath, DigSubdirectories: Boolean): TStringList;           { if DigSubdirectories is false, it will return only the top level directories, else it will return also the subdirectories of subdirectories. Returned folders are FullPath. Works also with Hidden/System folders }
+ function  ListDirectoriesOf   (CONST aFolder: string; CONST ReturnFullPath, DigSubdirectories: Boolean): TStringList;   { if DigSubdirectories is false, it will return only the top level directories, else it will return also the subdirectories of subdirectories. Returned folders are FullPath. Works also with Hidden/System folders }
  function  ListFilesAndFolderOf(CONST aFolder: string; CONST ReturnFullPath: Boolean): TStringList;
  function  ListFilesOf         (CONST aFolder, FileType: string; CONST ReturnFullPath, DigSubdirectories: Boolean): TStringList;
  function  FolderIsEmpty       (CONST FolderName: string): Boolean;                               { Check if folder is empty }
@@ -240,7 +239,7 @@ CONST
 --------------------------------------------------------------------------------------------------}
  function  IncrementFileNameEx  (CONST FileName: string; StartAt, NumberLength: Integer): string;  { Same sa IncrementFileName but it automatically adds a number if the file doesn't already ends with a number }
  function  IncrementFileName    (CONST FileName: string): string;                                  { Receives a file name that ends in a number. returns the same filename plus the number incremented with one. }
- function  MakeUniqueFolderName (CONST RootPath, FolderName: string): string;                     { Returns a unique path ended with a number. Old name:  Getnewfoldername }
+ function  MakeUniqueFolderName (CONST RootPath, FolderName: string): string;                      { Returns a unique path ended with a number. Old name:  Getnewfoldername }
  function  ChangeFilePath       (CONST FullFileName, NewPath: string): string;                     { schimba calea fisierului la NewPath }
  function  AppendNumber2Filename(CONST FileName: string; StartAt, NumberLength: Integer): string;  { Add the number at the end of the filename. Example: AppendNumber2Filename('Log.txt', 1) will output 'Log1.txt' }
  function  FileEndsInNumber     (CONST FileName: string): Boolean;                                 { Returns true is the filename ends with a number. Example: MyFile02.txt returns TRUE }
@@ -268,16 +267,15 @@ CONST
    FILE EXTENSION
 --------------------------------------------------------------------------------------------------}
  function  RemoveLastExtension (CONST FileName: string): string;                                   { Extrage numele fisierului din nume+extensie. Daca numele este de tipul nume+extensie+extensie, doar ultima extensie este eliminata }
- //function  RemoveLastExtension_(CONST FileName: string): string;
  function  ForceExtension      (CONST FileName, Ext: string): string;                              { makes sure that the 'FileName' file has the extension set to 'Ext'. The 'Ext' parameter should be like: '.txt' }
- function  ExtractFileExtUp   (CONST FileName: string): string;                                   { Case insensitive version }
+ function  ExtractFileExtUp   (CONST FileName: string): string;                                    { Case insensitive version }
 
 
 {--------------------------------------------------------------------------------------------------
    FILE - DETECT FILE TYPE
 --------------------------------------------------------------------------------------------------}
  function IsVideo       (CONST AGraphFile: string): Boolean;            { Video files supported by FFVCL (cFrameServerAVI) }
- function IsVideoGeneric(CONST AGraphFile: string) : Boolean;   { Generic video file detection. It doesn't mean I have support for all those files in my app }
+ function IsVideoGeneric(CONST AGraphFile: string) : Boolean;           { Generic video file detection. It doesn't mean I have support for all those files in my app }
  function IsGIF         (CONST AGraphFile: string) : Boolean;
 
  function IsJpg   (CONST AGraphFile: string) : Boolean;
@@ -355,6 +353,8 @@ CONST
  procedure MoveFolder          (CONST FromFolder, ToFolder   : String; SilentOverwrite: Boolean= True);
  function  MoveFolderSlow      (CONST FromFolder, ToFolder   : String; Overwrite: boolean): Integer; deprecated 'Use TDirectory.Move() instead.';
 
+
+
 {--------------------------------------------------------------------------------------------------
    BACKUP
 --------------------------------------------------------------------------------------------------}
@@ -362,6 +362,7 @@ CONST
  function BackupFileDate       (CONST FileName: string;             TimeStamp: Boolean= TRUE; Overwrite: Boolean = TRUE): Boolean;  overload;     { Create a copy of the specified file in the same folder. The '_backup' string is attached at the end of the filename }
  function BackupFileDate       (CONST FileName, DestFolder: string; TimeStamp: Boolean= TRUE; Overwrite: Boolean = TRUE): Boolean;  overload;
  function BackupFileBak        (CONST FileName: string): Boolean; { Create a copy of this file, and appends as file extension. Ex: File.txt -> File.txt.bak }
+
 
 
 {--------------------------------------------------------------------------------------------------
@@ -982,43 +983,23 @@ begin
 end;
 
 
-{ Replacement for System.SysUtils.ForceDirectories which has a problem when it is called with an empty string.
-  Doing so causes ForceDirectories to raise an exception.
-  It won't work with network drives }
-function ForceDirectoriesB_old(FullPath: string): Boolean;
-begin
-  { Check empty }
-  if (Trim(FullPath) = '')
-  then EXIT(FALSE);
 
-  { Check for invalid chars }
-  if NOT PathNameIsValid(FullPath)
-  then EXIT(FALSE);
+{--------------------------------------------------------------------------------------------------
+   CREATE FOLDER
 
-  FullPath:= TPath.GetFullPath(FullPath);                { Returns the absolute path for a given path. GetFullPath returns the full, absolute path for a given relative path. If the given path if absolute, GetFullPath simply returns it; otherwise, GetFullPath uses the current working directory as a root for the given Path.  }
+   Tries to create the specified folder
+   Works with UNC paths.
+   Writing on a readonly folder: ignores the ReadOnly attribute (same for H and S attributes)
 
-  { Check min length }
-  if (Length(FullPath) < 4)
-  then EXIT(FALSE);                                      { Avoid 'xyz:\' problem. The length of the path shoulf be at leats 4 characters, for example: 'c:\a'. I can do this check ONLY AFTER GetFullPath }
+   Returns:
+     False if the path is invalid.
+     False if the drive is readonly.
 
-  { Check max length }
-  if NOT CheckPathLength(FullPath)
-  then EXIT(FALSE);
-
-  { Check drive }
-  if NOT TPath.DriveExists(TPath.GetPathRoot(FullPath))  {  <------- this won't work with network drives }
-  then EXIT(FALSE);
-
-  { Already exists? }
-  if DirectoryExists(FullPath)
-  then EXIT(TRUE);
-
-  { Recursive call }
-  Result:= System.SysUtils.ForceDirectories( FullPath );
-end;
-
-
-function ForceDirectoriesB(FullPath: string): Boolean;   // Works with UNC paths
+     Raises exception if parameter is invalid
+     Raises exception if parameter is empty
+     Raises exception if drive is invalid
+--------------------------------------------------------------------------------------------------}
+function ForceDirectoriesB(FullPath: string): Boolean;
 begin
   TDirectory.CreateDirectory(FullPath);
   Result:= DirectoryExists(FullPath);

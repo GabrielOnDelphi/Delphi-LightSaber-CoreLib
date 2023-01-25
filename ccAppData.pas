@@ -72,6 +72,7 @@ TYPE
     function  RunFileAtWinStartUp(FilePath: string; Active: Boolean): Boolean;
     class procedure CreateForm(aClass: TFormClass; OUT Reference; Show: Boolean = TRUE);
     class procedure CreateFormModal(aClass: TFormClass; OUT Reference);
+    procedure SetMaxPriority;
 
     property Font: TFont read FFont write setFont;
 
@@ -95,14 +96,6 @@ TYPE
   end;
 
 
-
-
-{-------------------------------------------------------------------------------------------------
-   Compiler info
---------------------------------------------------------------------------------------------------}
-function CompilerOptimization : Boolean;
-function CompilerOptimizationS: String;
-function AppPlatform: string;     { Shows if the program is compiled as 32 or 64bit app }
 
 
 {-------------------------------------------------------------------------------------------------
@@ -338,6 +331,10 @@ end;
 
 
 
+
+
+
+
 {--------------------------------------------------------------------------------------------------
    APPLICATION Control
 --------------------------------------------------------------------------------------------------}
@@ -385,9 +382,6 @@ begin
 end;
 
 
-
-
-
 { Bring the application back to screen (if minimized, in background, hidden) }
 procedure TAppData.Restore;
 begin
@@ -400,6 +394,15 @@ begin
   SetForegroundWindow(Application.MainForm.Handle);
   Application.BringToFront;
 end;
+
+
+{ Set this process to maximum priority. Usefull when measuring time }
+procedure TAppData.SetMaxPriority;
+begin
+ SetPriorityClass(GetCurrentProcess, REALTIME_PRIORITY_CLASS); //  https://stackoverflow.com/questions/13631644/setthreadpriority-and-setpriorityclass
+end;
+
+
 
 
 
@@ -522,51 +525,7 @@ end;
 
 
 
-{-----------------------------------------------------------------------------------------------------------------------
-   COMPILER
------------------------------------------------------------------------------------------------------------------------}
-
-{ Importan note:
-   $O+ has a local scope, therefore, the result of the function reflects only the optimization state at that specific source code location.
-   So, if you are using the $O switch to optimize pieces of code then the function MUST be used as a subfunction;
-   Otherwise, if you use the global switch ONLY (in Project Options) it can be used as a normal (declared) function. }
-
-{ Returns true in the compiler optimization is on (probably we are in release mode, in this case) }
-function CompilerOptimization: Boolean;
-begin
- {$IfOpt O+}
- Result:= TRUE;
- {$Else}
- Result:= FALSE;
- {$EndIf}
-end;
-
-
-{ Same as above }
-function CompilerOptimizationS: String;
-begin
- Result:= 'Compiler optimization is ' +
- {$IfOpt O+}
- 'enabled'
- {$Else}
- 'disabled'
- {$EndIf}
-end;
-
-
-{ Shows if the program is compiled as 32 or 64bit app }
-function AppPlatform: String;
-begin
- {$IF Defined(CPUX86)}
-   Result:= '32bit';
- {$ELSEIF Defined(CPUX64)}
-   Result:= '64bit';
- {$ELSE}
-   {$Message Fatal 'Unknown CPU'}  {TODO 2: do this in all functions that are platform conditionated }        { Contitional compilation: http://docwiki.embarcadero.com/RADStudio/XE8/en/Conditional_compilation_%28Delphi%29 }
- {$ENDIF}
-end;
-
-
+{----
 
 
 
