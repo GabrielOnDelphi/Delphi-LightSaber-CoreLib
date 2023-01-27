@@ -11,6 +11,13 @@ Over 100 files are waiting to be cured and added: graphichs, simple encryption, 
 Click the 'Watch' button if you want to get notified about updates.  
 _________________
 
+**Downloading the code**  
+
+This repository is only a placeholder and source of information. It is not updated since 25.01.2023.
+The code should be downloaded now from https://github.com/GodModeUser/Delphi-LightSaber
+
+_________________
+
 Files in this repository:
 
 **ccCore.pas**  
@@ -134,9 +141,3 @@ This library is freeware (see included copyright notice).
 The library cannot be used in Russia!
 
 Enjoy and "Star" the library if it is useful to you.
-
-
-**Downloading the code**  
-
-This repository is only a placeholder and source of information. It is not updated since 25.01.2023.
-The code should be downloaded now from https://github.com/GodModeUser/Delphi-LightSaber
