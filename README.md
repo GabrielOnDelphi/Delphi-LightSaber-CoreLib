@@ -6,15 +6,15 @@ Simple, crystal clear, non-obfuscated, fully commented code.
 No external dependencies.   
   
 **This library will be expanded if it gets enough Stars.** Click the 'Star' button (top-right corner) if you like this library.  
-Over 100 files are waiting to be cured and added: graphichs, simple encryption, internet functions (including file download routines), HTML manipulation, image manipulation, registry, math and LOTS of visual components!
+Over 100 files are waiting to be cured and added: graphics, simple encryption, internet functions (including file download routines), HTML manipulation, image manipulation, registry, math, and LOTS of visual components!
 
 Click the 'Watch' button if you want to get notified about updates.  
 _________________
 
 **Downloading the code**  
 
-This repository is only a placeholder and source of information. It is not updated since 25.01.2023.
-The code should be downloaded now from https://github.com/GodModeUser/Delphi-LightSaber
+This repository is only a placeholder and source of information. It is not updated since 01.2023.
+The code should be downloaded now from the [LightSaber Core](https://github.com/GabrielOnDelphi/Delphi-LightSaber) repository.
 
 _________________
 
@@ -35,7 +35,7 @@ Files in this repository:
 - Copy files   
 - File/Folder Exists    
 - Get special Windows folders (My Documents, etc)  
-- Prompt user to select a file/folder  
+- Prompt the user to select a file/folder  
 - List specified files (.jpg for ex) in a folder and all its sub-folders  
 - Increment the numbers in a filename (good for incremental backups)  
 - Append strings to file name  
@@ -48,9 +48,9 @@ Files in this repository:
      
 **ccAppData.pas**  
 Application-wide functions:
-- Get application's appdata folder (the folder where you save temporary, app-related and ini files)
+- Get application's appdata folder (the folder where you save temporary, app-related, and ini files)
 - Get application's command line parameters
-- Detect if the application is running for the firs this in a computer
+- Detect if the application is running for the first this in a computer
 - Application self-restart
 - Application self-delete
 - etc
@@ -63,14 +63,14 @@ This class adds new functionality that does not exist in Delphi's original strea
 - Read/WriteInteger  
 - Read/WriteCardinal  
 - Read/WriteDate  
-- Read/Write mac files (inverted byte endianness)  
+- Read/Write Mac files (inverted byte endianness)  
 - etc  
 It may be used as a drop-in replacement for TFileStream.  
   
      
 **ccStreamFile.pas**  
      Expansion class for Delphi classical TFileStream.   
-     Allows you to directly read/write bytes, cardinals, words, integers, strings to a (binary) files.  
+     Allows you to directly read/write bytes, cardinals, words, integers, and strings to (binary) files.  
      Now replaced by ccStreamBuff.
      
 **ccBinary.pas**  
@@ -84,7 +84,7 @@ It may be used as a drop-in replacement for TFileStream.
 
 **ccWinVersion.pas**  
 This library expands the TOSVersion.  
-Use it to get Windows version.  
+Use it to get the Windows version.  
 Example of functions:    
 - IsWindowsXP  
 - IsWindowsXPUp  
@@ -100,7 +100,7 @@ Example of functions:
 **ccINIFile**  
 Features:  
 - Extends the capabilities of TIniFile  
-- Functions for easily accessing application's default INI file.  
+- Functions for easily accessing the application's default INI file.  
 
 Setup:  
      Before using it you must set the ccAppData.AppName global var.  
@@ -108,11 +108,11 @@ Setup:
      Example: If the AppName is set to "DelphiLightSaber" the ini file will be  "c:\Users\UserName\AppData\Roaming\DelphiLightSaber\DelphiLightSaber.ini" 
  
  
-**And... the cherry on the top of the cake was left at the end!**
+**And... the cherry on top of the cake was left at the end!**
 
 Resume application's GUI state via **ccINIFileVCL.pas** 
 
-Do you have applications with forms with lots of controls (like checkboxes/radiobuttons) and you want to save its status to disk on shutdown and resume exaclty from where you left on application startup with just one function call?  
+Do you have applications with forms with lots of controls (like checkboxes/radio buttons) and you want to save its status to disk on shutdown and resume exactly from where you left on application startup with just one function call?  
   Use SaveForm/LoadForm.  
 
 Example:   
@@ -126,7 +126,7 @@ _____
 **Filename convention**  
   
 - 'c' -> The first c stands for 'cubic', 
-- 'c' -> The second 'c' stands for 'core'.  All files I posted in library/repository are 'core' because other libraries will be based on them.  
+- 'c' -> The second 'c' stands for 'core'.  All files I posted in the library/repository are 'core' because other libraries will be based on them.  
 - 'v'-> visual component 
 - 'Graph'-> graphic library  
 
